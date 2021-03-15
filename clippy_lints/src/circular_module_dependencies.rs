@@ -11,6 +11,7 @@ use rustc_hir::{
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty::print;
 use rustc_session::{declare_tool_lint, impl_lint_pass};
+use rustc_span::sym;
 
 use clippy_utils::diagnostics::span_lint_and_help;
 
@@ -124,7 +125,7 @@ impl ModGraph {
                     path_nodes.push(parent);
                 }
 
-                // The indexes are converted back LocalDefIds in the reverse
+                // The indexes are converted back to LocalDefIds in the reverse
                 // order so that the resulting Vec is in the right order.
                 return Some(
                     path_nodes
@@ -183,13 +184,20 @@ impl ModGraph {
 
 fn get_target_module(cx: &LateContext<'_>, path: &Path<'_>) -> Option<LocalDefId> {
     if let Res::Def(kind, id) = path.res {
-        // Importing a module is not considered a dependency on it's own.
-        //
-        // This allows using pub(in path) and pub(super) without creating a
-        // cycle. It also means that glob imports are not considered a
-        // dependency on their own. However, using them most likely mean that
-        // another def is being imported, which would create a dependency.
         if let DefKind::Mod = kind {
+            // Importing a module is not considered a dependency on it's own.
+            //
+            // This allows using pub(in path) and pub(super) without creating a
+            // cycle. It also means that glob imports are not considered a
+            // dependency on their own. However, using them most likely mean that
+            // another def is being imported, which would create a dependency.
+            None
+        } else if cx.tcx.has_attr(id, sym::rustc_test_marker) {
+            // When testing, all tests are called by the test runner located at
+            // the root of the crate. This means that the root depends on all
+            // modules with tests. This might create cycles if some of these
+            // modules already depend on the root module. Thus, we ignore test
+            // functions to avoid this confusing behaviour.
             None
         } else {
             // We try to get the parent module
