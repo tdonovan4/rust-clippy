@@ -183,6 +183,7 @@ mod cargo_common_metadata;
 mod case_sensitive_file_extension_comparisons;
 mod casts;
 mod checked_conversions;
+mod circular_module_dependencies;
 mod cognitive_complexity;
 mod collapsible_if;
 mod collapsible_match;
@@ -608,6 +609,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
         casts::PTR_AS_PTR,
         casts::UNNECESSARY_CAST,
         checked_conversions::CHECKED_CONVERSIONS,
+        circular_module_dependencies::CIRCULAR_MODULE_DEPENDENCIES,
         cognitive_complexity::COGNITIVE_COMPLEXITY,
         collapsible_if::COLLAPSIBLE_ELSE_IF,
         collapsible_if::COLLAPSIBLE_IF,
@@ -1293,6 +1295,8 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|| box from_str_radix_10::FromStrRadix10);
     store.register_late_pass(|| box manual_map::ManualMap);
     store.register_late_pass(move || box if_then_some_else_none::IfThenSomeElseNone::new(msrv));
+    store.register_late_pass(|| box circular_module_dependencies::CircularModuleDependencies::new());
+
 
     store.register_group(true, "clippy::restriction", Some("clippy_restriction"), vec![
         LintId::of(arithmetic::FLOAT_ARITHMETIC),
@@ -1365,6 +1369,7 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
         LintId::of(casts::CAST_SIGN_LOSS),
         LintId::of(casts::PTR_AS_PTR),
         LintId::of(checked_conversions::CHECKED_CONVERSIONS),
+        LintId::of(circular_module_dependencies::CIRCULAR_MODULE_DEPENDENCIES),
         LintId::of(copies::SAME_FUNCTIONS_IN_IF_CONDITION),
         LintId::of(copy_iterator::COPY_ITERATOR),
         LintId::of(default::DEFAULT_TRAIT_ACCESS),

@@ -1,0 +1,70 @@
+error: importing this creates a circular dependency
+  --> $DIR/circular_module_dependencies.rs:17:9
+   |
+LL |     use super::cycle_maker::AStruct;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D clippy::circular-module-dependencies` implied by `-D warnings`
+   = help: +---> cycle_maker
+           |  |
+           |  -> use_declaration
+           +--+
+             this import creates the cycle
+           
+
+error: importing this creates a circular dependency
+  --> $DIR/circular_module_dependencies.rs:23:18
+   |
+LL |     type Alias = super::cycle_maker::AStruct;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: +---> cycle_maker
+           |  |
+           |  -> relative_path
+           +--+
+             this import creates the cycle
+           
+
+error: importing this creates a circular dependency
+  --> $DIR/circular_module_dependencies.rs:29:18
+   |
+LL |     type Alias = crate::cycle_maker::AStruct;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: +---> cycle_maker
+           |  |
+           |  -> absolute_path
+           +--+
+             this import creates the cycle
+           
+
+error: importing this creates a circular dependency
+  --> $DIR/circular_module_dependencies.rs:80:9
+   |
+LL |     use self::child_cycle::ParentAlias;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: +---> parent::child_cycle
+           |  |
+           |  -> parent
+           +--+
+             this import creates the cycle
+           
+
+error: importing this creates a circular dependency
+  --> $DIR/circular_module_dependencies.rs:103:29
+   |
+LL |     pub type SomethingNew = super::module2::SomethingElse;
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: +---> module2
+           |  |
+           |  -> module1
+           |  |
+           |  -> module3
+           +--+
+             this import creates the cycle
+           
+
+error: aborting due to 5 previous errors
+
