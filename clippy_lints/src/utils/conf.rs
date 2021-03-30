@@ -5,10 +5,8 @@
 use rustc_ast::ast::{LitKind, MetaItemKind, NestedMetaItem};
 use rustc_span::source_map;
 use source_map::Span;
-use std::lazy::SyncLazy;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-use std::{env, fmt, fs, io};
+use std::{env, fs, io};
 
 /// Gets the configuration file from arguments.
 pub fn file_from_args(args: &[NestedMetaItem]) -> Result<Option<PathBuf>, (&'static str, Span)> {
@@ -30,32 +28,42 @@ pub fn file_from_args(args: &[NestedMetaItem]) -> Result<Option<PathBuf>, (&'sta
     Ok(None)
 }
 
-/// Error from reading a configuration file.
-#[derive(Debug)]
-pub enum Error {
-    /// An I/O error.
-    Io(io::Error),
-    /// Not valid toml or doesn't fit the expected config format
-    Toml(String),
-}
+/// A module for the errors types. It prevents a cycle between this module and
+/// the child modules of helpers.
+mod error {
+    use std::lazy::SyncLazy;
+    use std::sync::Mutex;
+    use std::{fmt, io};
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Io(err) => err.fmt(f),
-            Self::Toml(err) => err.fmt(f),
+    /// Error from reading a configuration file.
+    #[derive(Debug)]
+    pub enum Error {
+        /// An I/O error.
+        Io(io::Error),
+        /// Not valid toml or doesn't fit the expected config format
+        Toml(String),
+    }
+
+    impl fmt::Display for Error {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Self::Io(err) => err.fmt(f),
+                Self::Toml(err) => err.fmt(f),
+            }
         }
     }
-}
 
-impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Self {
-        Self::Io(e)
+    impl From<io::Error> for Error {
+        fn from(e: io::Error) -> Self {
+            Self::Io(e)
+        }
     }
-}
 
-/// Vec of errors that might be collected during config toml parsing
-static ERRORS: SyncLazy<Mutex<Vec<Error>>> = SyncLazy::new(|| Mutex::new(Vec::new()));
+    /// Vec of errors that might be collected during config toml parsing
+    pub(super) static ERRORS: SyncLazy<Mutex<Vec<Error>>> = SyncLazy::new(|| Mutex::new(Vec::new()));
+}
+pub use self::error::Error;
+use self::error::ERRORS;
 
 macro_rules! define_Conf {
     ($(#[$doc:meta] ($config:ident, $config_str:literal: $Ty:ty, $default:expr),)+) => {
@@ -80,7 +88,7 @@ macro_rules! define_Conf {
                 mod $config {
                     use serde::Deserialize;
                     pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<$Ty, D::Error> {
-                        use super::super::{ERRORS, Error};
+                        use super::super::error::{ERRORS, Error};
 
                         Ok(
                             <$Ty>::deserialize(deserializer).unwrap_or_else(|e| {
@@ -88,7 +96,7 @@ macro_rules! define_Conf {
                                     .lock()
                                     .expect("no threading here")
                                     .push(Error::Toml(e.to_string()));
-                                super::$config()
+                                $default
                             })
                         )
                     }
