@@ -1,5 +1,5 @@
 error: importing this creates a circular dependency
-  --> $DIR/circular_module_dependencies.rs:17:9
+  --> $DIR/circular_module_dependencies.rs:18:9
    |
 LL |     use super::cycle_maker::AStruct;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -13,7 +13,7 @@ LL |     use super::cycle_maker::AStruct;
            
 
 error: importing this creates a circular dependency
-  --> $DIR/circular_module_dependencies.rs:23:18
+  --> $DIR/circular_module_dependencies.rs:24:18
    |
 LL |     type Alias = super::cycle_maker::AStruct;
    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -26,7 +26,7 @@ LL |     type Alias = super::cycle_maker::AStruct;
            
 
 error: importing this creates a circular dependency
-  --> $DIR/circular_module_dependencies.rs:29:18
+  --> $DIR/circular_module_dependencies.rs:30:18
    |
 LL |     type Alias = crate::cycle_maker::AStruct;
    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -39,7 +39,7 @@ LL |     type Alias = crate::cycle_maker::AStruct;
            
 
 error: importing this creates a circular dependency
-  --> $DIR/circular_module_dependencies.rs:80:9
+  --> $DIR/circular_module_dependencies.rs:89:9
    |
 LL |     use self::child_cycle::ParentAlias;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -52,7 +52,7 @@ LL |     use self::child_cycle::ParentAlias;
            
 
 error: importing this creates a circular dependency
-  --> $DIR/circular_module_dependencies.rs:103:29
+  --> $DIR/circular_module_dependencies.rs:112:29
    |
 LL |     pub type SomethingNew = super::module2::SomethingElse;
    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

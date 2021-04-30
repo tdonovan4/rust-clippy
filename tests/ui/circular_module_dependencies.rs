@@ -5,6 +5,7 @@
 
 mod cycle_maker {
     use super::absolute_path::ABSOLUTE;
+    use super::allow_lint::ALLOW;
     use super::glob_import::GLOB;
     use super::import_module::MODULE;
     use super::relative_path::RELATIVE;
@@ -61,6 +62,14 @@ mod glob_import {
     use super::cycle_maker::*;
 
     pub const GLOB: bool = false;
+}
+
+mod allow_lint {
+    // Should not warn about a cycle
+    #[allow(clippy::circular_module_dependencies)]
+    type Alias = super::cycle_maker::AStruct;
+
+    pub const ALLOW: bool = false;
 }
 
 // Test parent-child cycle

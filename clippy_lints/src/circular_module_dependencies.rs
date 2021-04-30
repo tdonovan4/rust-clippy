@@ -8,7 +8,7 @@ use rustc_hir::{
     def_id::LocalDefId,
     HirId, Path,
 };
-use rustc_lint::{LateContext, LateLintPass};
+use rustc_lint::{LateContext, LateLintPass, Level};
 use rustc_middle::ty::print;
 use rustc_session::{declare_tool_lint, impl_lint_pass};
 use rustc_span::sym;
@@ -251,6 +251,20 @@ impl_lint_pass!(CircularModuleDependencies => [CIRCULAR_MODULE_DEPENDENCIES]);
 
 impl LateLintPass<'_> for CircularModuleDependencies {
     fn check_path(&mut self, cx: &LateContext<'_>, path: &Path<'_>, path_id: HirId) {
+        // If the lint level is set to allow, we stop to avoid adding an edge to
+        // the graph.
+        //
+        // Without doing this, the attribute would need to be placed on the last
+        // edge of the cycle (the one triggering the lint). The last edge is
+        // arbitrary and so this way is incovenient to the user.
+        //
+        // To fix this, edges are not added when this lint is allowed. This
+        // means that the user can choose to allow any edge and the cycle won't
+        // happen.
+        if let Level::Allow = cx.tcx.lint_level_at_node(CIRCULAR_MODULE_DEPENDENCIES, path_id).0 {
+            return;
+        }
+
         // Used as the edge's source in the graph
         let current_module = cx.tcx.parent_module_from_def_id(path_id.owner);
 
