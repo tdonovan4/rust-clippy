@@ -6,11 +6,39 @@ use rustc_errors::Applicability;
 use rustc_hir::{self as hir, def_id::DefId, GenericArg, QPath, TyKind};
 use rustc_lint::LateContext;
 use rustc_middle::ty::TypeFoldable;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 use rustc_target::abi::LayoutOf;
 use rustc_typeck::hir_ty_to_ty;
 
-use super::VEC_BOX;
+declare_clippy_lint! {
+    /// **What it does:** Checks for use of `Vec<Box<T>>` where T: Sized anywhere in the code.
+    /// Check the [Box documentation](https://doc.rust-lang.org/std/boxed/index.html) for more information.
+    ///
+    /// **Why is this bad?** `Vec` already keeps its contents in a separate area on
+    /// the heap. So if you `Box` its contents, you just add another level of indirection.
+    ///
+    /// **Known problems:** Vec<Box<T: Sized>> makes sense if T is a large type (see [#3530](https://github.com/rust-lang/rust-clippy/issues/3530),
+    /// 1st comment).
+    ///
+    /// **Example:**
+    /// ```rust
+    /// struct X {
+    ///     values: Vec<Box<i32>>,
+    /// }
+    /// ```
+    ///
+    /// Better:
+    ///
+    /// ```rust
+    /// struct X {
+    ///     values: Vec<i32>,
+    /// }
+    /// ```
+    pub VEC_BOX,
+    complexity,
+    "usage of `Vec<Box<T>>` where T: Sized, vector elements are already on the heap"
+}
 
 pub(super) fn check(
     cx: &LateContext<'_>,

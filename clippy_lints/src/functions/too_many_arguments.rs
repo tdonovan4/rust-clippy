@@ -1,12 +1,32 @@
 use rustc_hir::{self as hir, intravisit};
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::Span;
 use rustc_target::spec::abi::Abi;
 
 use clippy_utils::diagnostics::span_lint;
 use clippy_utils::is_trait_impl_item;
 
-use super::TOO_MANY_ARGUMENTS;
+declare_clippy_lint! {
+    /// **What it does:** Checks for functions with too many parameters.
+    ///
+    /// **Why is this bad?** Functions with lots of parameters are considered bad
+    /// style and reduce readability (“what does the 5th parameter mean?”). Consider
+    /// grouping some parameters into a new type.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # struct Color;
+    /// fn foo(x: u32, y: u32, name: &str, c: Color, w: f32, h: f32, a: f32, b: f32) {
+    ///     // ..
+    /// }
+    /// ```
+    pub TOO_MANY_ARGUMENTS,
+    complexity,
+    "functions with too many arguments"
+}
 
 pub(super) fn check_fn(
     cx: &LateContext<'tcx>,

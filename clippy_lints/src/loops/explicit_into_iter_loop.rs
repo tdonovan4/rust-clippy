@@ -1,10 +1,38 @@
-use super::EXPLICIT_INTO_ITER_LOOP;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::source::snippet_with_applicability;
 use rustc_errors::Applicability;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::TyS;
+use rustc_session::declare_tool_lint;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for loops on `y.into_iter()` where `y` will do, and
+    /// suggests the latter.
+    ///
+    /// **Why is this bad?** Readability.
+    ///
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let y = vec![1];
+    /// // with `y` a `Vec` or slice:
+    /// for x in y.into_iter() {
+    ///     // ..
+    /// }
+    /// ```
+    /// can be rewritten to
+    /// ```rust
+    /// # let y = vec![1];
+    /// for x in y {
+    ///     // ..
+    /// }
+    /// ```
+    pub EXPLICIT_INTO_ITER_LOOP,
+    pedantic,
+    "for-looping over `_.into_iter()` when `_` would do"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, args: &'hir [Expr<'hir>], arg: &Expr<'_>) {
     let receiver_ty = cx.typeck_results().expr_ty(&args[0]);

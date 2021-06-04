@@ -6,9 +6,34 @@ use clippy_utils::ty::{is_type_diagnostic_item, match_type};
 use rustc_errors::Applicability;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
 
-use super::ITER_COUNT;
+declare_clippy_lint! {
+    /// **What it does:** Checks for the use of `.iter().count()`.
+    ///
+    /// **Why is this bad?** `.len()` is more efficient and more
+    /// readable.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// // Bad
+    /// let some_vec = vec![0, 1, 2, 3];
+    /// let _ = some_vec.iter().count();
+    /// let _ = &some_vec[..].iter().count();
+    ///
+    /// // Good
+    /// let some_vec = vec![0, 1, 2, 3];
+    /// let _ = some_vec.len();
+    /// let _ = &some_vec[..].len();
+    /// ```
+    pub ITER_COUNT,
+    complexity,
+    "replace `.iter().count()` with `.len()`"
+}
 
 pub(crate) fn check<'tcx>(cx: &LateContext<'tcx>, expr: &Expr<'_>, recv: &'tcx Expr<'tcx>, iter_method: &str) {
     let ty = cx.typeck_results().expr_ty(recv);

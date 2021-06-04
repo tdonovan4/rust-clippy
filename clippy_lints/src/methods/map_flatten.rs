@@ -6,9 +6,31 @@ use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 
-use super::MAP_FLATTEN;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `_.map(_).flatten(_)` on `Iterator` and `Option`
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely as
+    /// `_.flat_map(_)`
+    ///
+    /// **Known problems:**
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let vec = vec![vec![1]];
+    ///
+    /// // Bad
+    /// vec.iter().map(|x| x.iter()).flatten();
+    ///
+    /// // Good
+    /// vec.iter().flat_map(|x| x.iter());
+    /// ```
+    pub MAP_FLATTEN,
+    pedantic,
+    "using combinations of `flatten` and `map` which can usually be written as a single method call"
+}
 
 /// lint use of `map().flatten()` for `Iterators` and 'Options'
 pub(super) fn check<'tcx>(

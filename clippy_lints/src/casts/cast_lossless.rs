@@ -6,8 +6,41 @@ use rustc_errors::Applicability;
 use rustc_hir::{Expr, ExprKind};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, FloatTy, Ty};
+use rustc_session::declare_tool_lint;
 
-use super::{utils, CAST_LOSSLESS};
+use super::utils;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts between numerical types that may
+    /// be replaced by safe conversion functions.
+    ///
+    /// **Why is this bad?** Rust's `as` keyword will perform many kinds of
+    /// conversions, including silently lossy conversions. Conversion functions such
+    /// as `i32::from` will only perform lossless conversions. Using the conversion
+    /// functions prevents conversions from turning into silent lossy conversions if
+    /// the types of the input expressions ever change, and make it easier for
+    /// people reading the code to know that the conversion is lossless.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// fn as_u64(x: u8) -> u64 {
+    ///     x as u64
+    /// }
+    /// ```
+    ///
+    /// Using `::from` would look like this:
+    ///
+    /// ```rust
+    /// fn as_u64(x: u8) -> u64 {
+    ///     u64::from(x)
+    /// }
+    /// ```
+    pub CAST_LOSSLESS,
+    pedantic,
+    "casts using `as` that are known to be lossless, e.g., `x as u64` where `x: u8`"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>, cast_op: &Expr<'_>, cast_from: Ty<'_>, cast_to: Ty<'_>) {
     if !should_lint(cx, expr, cast_from, cast_to) {

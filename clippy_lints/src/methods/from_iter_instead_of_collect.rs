@@ -7,9 +7,41 @@ use rustc_hir as hir;
 use rustc_hir::ExprKind;
 use rustc_lint::{LateContext, LintContext};
 use rustc_middle::ty::Ty;
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
 
-use super::FROM_ITER_INSTEAD_OF_COLLECT;
+declare_clippy_lint! {
+    /// **What it does:** Checks for `from_iter()` function calls on types that implement the `FromIterator`
+    /// trait.
+    ///
+    /// **Why is this bad?** It is recommended style to use collect. See
+    /// [FromIterator documentation](https://doc.rust-lang.org/std/iter/trait.FromIterator.html)
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// use std::iter::FromIterator;
+    ///
+    /// let five_fives = std::iter::repeat(5).take(5);
+    ///
+    /// let v = Vec::from_iter(five_fives);
+    ///
+    /// assert_eq!(v, vec![5, 5, 5, 5, 5]);
+    /// ```
+    /// Use instead:
+    /// ```rust
+    /// let five_fives = std::iter::repeat(5).take(5);
+    ///
+    /// let v: Vec<i32> = five_fives.collect();
+    ///
+    /// assert_eq!(v, vec![5, 5, 5, 5, 5]);
+    /// ```
+    pub FROM_ITER_INSTEAD_OF_COLLECT,
+    style,
+    "use `.collect()` instead of `::from_iter()`"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, args: &[hir::Expr<'_>], func_kind: &ExprKind<'_>) {
     if_chain! {

@@ -1,10 +1,29 @@
-use super::USELESS_TRANSMUTE;
 use clippy_utils::diagnostics::{span_lint, span_lint_and_then};
 use clippy_utils::sugg;
 use rustc_errors::Applicability;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
+
+// FIXME: Move this to `complexity` again, after #5343 is fixed
+declare_clippy_lint! {
+    /// **What it does:** Checks for transmutes to the original type of the object
+    /// and transmutes that could be a cast.
+    ///
+    /// **Why is this bad?** Readability. The code tricks people into thinking that
+    /// something complex is going on.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust,ignore
+    /// core::intrinsics::transmute(t); // where the result type is the same as `t`'s
+    /// ```
+    pub USELESS_TRANSMUTE,
+    nursery,
+    "transmutes that have the same to and from types or could be a cast/coercion"
+}
 
 /// Checks for `useless_transmute` lint.
 /// Returns `true` if it's triggered, otherwise returns `false`.

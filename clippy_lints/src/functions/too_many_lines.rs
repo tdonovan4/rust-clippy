@@ -1,12 +1,34 @@
 use rustc_hir as hir;
 use rustc_lint::{LateContext, LintContext};
 use rustc_middle::lint::in_external_macro;
+use rustc_session::declare_tool_lint;
 use rustc_span::Span;
 
 use clippy_utils::diagnostics::span_lint;
 use clippy_utils::source::snippet;
 
-use super::TOO_MANY_LINES;
+declare_clippy_lint! {
+    /// **What it does:** Checks for functions with a large amount of lines.
+    ///
+    /// **Why is this bad?** Functions with a lot of lines are harder to understand
+    /// due to having to look at a larger amount of code to understand what the
+    /// function is doing. Consider splitting the body of the function into
+    /// multiple functions.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// fn im_too_long() {
+    ///     println!("");
+    ///     // ... 100 more LoC
+    ///     println!("");
+    /// }
+    /// ```
+    pub TOO_MANY_LINES,
+    pedantic,
+    "functions with too many lines"
+}
 
 pub(super) fn check_fn(cx: &LateContext<'_>, span: Span, body: &'tcx hir::Body<'_>, too_many_lines_threshold: u64) {
     if in_external_macro(cx.sess(), span) {

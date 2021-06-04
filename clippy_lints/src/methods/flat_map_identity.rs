@@ -4,9 +4,30 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::{source_map::Span, sym};
 
-use super::FLAT_MAP_IDENTITY;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `flat_map(|x| x)`.
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely by using `flatten`.
+    ///
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let iter = vec![vec![0]].into_iter();
+    /// iter.flat_map(|x| x);
+    /// ```
+    /// Can be written as
+    /// ```rust
+    /// # let iter = vec![vec![0]].into_iter();
+    /// iter.flatten();
+    /// ```
+    pub FLAT_MAP_IDENTITY,
+    complexity,
+    "call to `flat_map` where `flatten` is sufficient"
+}
 
 /// lint use of `flat_map` for `Iterators` where `flatten` would be sufficient
 pub(super) fn check<'tcx>(

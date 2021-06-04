@@ -4,10 +4,33 @@ use if_chain::if_chain;
 use rustc_hir::{Expr, ExprKind, GenericArg};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 use rustc_target::abi::LayoutOf;
 
-use super::CAST_PTR_ALIGNMENT;
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts, using `as` or `pointer::cast`,
+    /// from a less-strictly-aligned pointer to a more-strictly-aligned pointer
+    ///
+    /// **Why is this bad?** Dereferencing the resulting pointer may be undefined
+    /// behavior.
+    ///
+    /// **Known problems:** Using `std::ptr::read_unaligned` and `std::ptr::write_unaligned` or similar
+    /// on the resulting pointer is fine. Is over-zealous: Casts with manual alignment checks or casts like
+    /// u64-> u8 -> u16 can be fine. Miri is able to do a more in-depth analysis.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let _ = (&1u8 as *const u8) as *const u16;
+    /// let _ = (&mut 1u8 as *mut u8) as *mut u16;
+    ///
+    /// (&1u8 as *const u8).cast::<u16>();
+    /// (&mut 1u8 as *mut u8).cast::<u16>();
+    /// ```
+    pub CAST_PTR_ALIGNMENT,
+    pedantic,
+    "cast from a pointer to a more-strictly-aligned pointer"
+}
 
 pub(super) fn check(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>) {
     if let ExprKind::Cast(cast_expr, cast_to) = expr.kind {

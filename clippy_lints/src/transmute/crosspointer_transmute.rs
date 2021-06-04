@@ -1,8 +1,27 @@
-use super::CROSSPOINTER_TRANSMUTE;
 use clippy_utils::diagnostics::span_lint;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
+
+// FIXME: Merge this lint with USELESS_TRANSMUTE once that is out of the nursery.
+declare_clippy_lint! {
+    /// **What it does:** Checks for transmutes between a type `T` and `*T`.
+    ///
+    /// **Why is this bad?** It's easy to mistakenly transmute between a type and a
+    /// pointer to that type.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust,ignore
+    /// core::intrinsics::transmute(t) // where the result type is the same as
+    ///                                // `*t` or `&t`'s
+    /// ```
+    pub CROSSPOINTER_TRANSMUTE,
+    complexity,
+    "transmutes that have to or from types that are a pointer to the other"
+}
 
 /// Checks for `crosspointer_transmute` lint.
 /// Returns `true` if it's triggered, otherwise returns `false`.

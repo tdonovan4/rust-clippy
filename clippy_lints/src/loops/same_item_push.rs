@@ -1,4 +1,3 @@
-use super::SAME_ITEM_PUSH;
 use clippy_utils::diagnostics::span_lint_and_help;
 use clippy_utils::path_to_local;
 use clippy_utils::source::snippet_with_macro_callsite;
@@ -10,8 +9,42 @@ use rustc_hir::intravisit::{walk_expr, NestedVisitorMap, Visitor};
 use rustc_hir::{BindingAnnotation, Block, Expr, ExprKind, HirId, Node, Pat, PatKind, Stmt, StmtKind};
 use rustc_lint::LateContext;
 use rustc_middle::hir::map::Map;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 use std::iter::Iterator;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks whether a for loop is being used to push a constant
+    /// value into a Vec.
+    ///
+    /// **Why is this bad?** This kind of operation can be expressed more succinctly with
+    /// `vec![item;SIZE]` or `vec.resize(NEW_SIZE, item)` and using these alternatives may also
+    /// have better performance.
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let item1 = 2;
+    /// let item2 = 3;
+    /// let mut vec: Vec<u8> = Vec::new();
+    /// for _ in 0..20 {
+    ///    vec.push(item1);
+    /// }
+    /// for _ in 0..30 {
+    ///     vec.push(item2);
+    /// }
+    /// ```
+    /// could be written as
+    /// ```rust
+    /// let item1 = 2;
+    /// let item2 = 3;
+    /// let mut vec: Vec<u8> = vec![item1; 20];
+    /// vec.resize(20 + 30, item2);
+    /// ```
+    pub SAME_ITEM_PUSH,
+    style,
+    "the same item is pushed inside of a for loop"
+}
 
 /// Detects for loop pushing the same item into a Vec
 pub(super) fn check<'tcx>(

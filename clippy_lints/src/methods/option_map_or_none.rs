@@ -5,10 +5,57 @@ use clippy_utils::{match_qpath, paths};
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 
-use super::OPTION_MAP_OR_NONE;
-use super::RESULT_MAP_OR_INTO_OPTION;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `_.map_or(None, _)`.
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely as
+    /// `_.and_then(_)`.
+    ///
+    /// **Known problems:** The order of the arguments is not in execution order.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let opt = Some(1);
+    ///
+    /// // Bad
+    /// opt.map_or(None, |a| Some(a + 1));
+    ///
+    /// // Good
+    /// opt.and_then(|a| Some(a + 1));
+    /// ```
+    pub OPTION_MAP_OR_NONE,
+    style,
+    "using `Option.map_or(None, f)`, which is more succinctly expressed as `and_then(f)`"
+}
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `_.map_or(None, Some)`.
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely as
+    /// `_.ok()`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// Bad:
+    /// ```rust
+    /// # let r: Result<u32, &str> = Ok(1);
+    /// assert_eq!(Some(1), r.map_or(None, Some));
+    /// ```
+    ///
+    /// Good:
+    /// ```rust
+    /// # let r: Result<u32, &str> = Ok(1);
+    /// assert_eq!(Some(1), r.ok());
+    /// ```
+    pub RESULT_MAP_OR_INTO_OPTION,
+    style,
+    "using `Result.map_or(None, Some)`, which is more succinctly expressed as `ok()`"
+}
 
 /// lint use of `_.map_or(None, _)` for `Option`s and `Result`s
 pub(super) fn check<'tcx>(

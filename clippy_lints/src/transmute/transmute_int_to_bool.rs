@@ -1,4 +1,3 @@
-use super::TRANSMUTE_INT_TO_BOOL;
 use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::sugg;
 use rustc_ast as ast;
@@ -6,7 +5,30 @@ use rustc_errors::Applicability;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 use std::borrow::Cow;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for transmutes from an integer to a `bool`.
+    ///
+    /// **Why is this bad?** This might result in an invalid in-memory representation of a `bool`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let x = 1_u8;
+    /// unsafe {
+    ///     let _: bool = std::mem::transmute(x); // where x: u8
+    /// }
+    ///
+    /// // should be:
+    /// let _: bool = x != 0;
+    /// ```
+    pub TRANSMUTE_INT_TO_BOOL,
+    complexity,
+    "transmutes from an integer to a `bool`"
+}
 
 /// Checks for `transmute_int_to_bool` lint.
 /// Returns `true` if it's triggered, otherwise returns `false`.

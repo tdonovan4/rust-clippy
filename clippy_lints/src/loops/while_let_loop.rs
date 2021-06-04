@@ -1,10 +1,39 @@
-use super::WHILE_LET_LOOP;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::source::snippet_with_applicability;
 use rustc_errors::Applicability;
 use rustc_hir::{Block, Expr, ExprKind, MatchSource, StmtKind};
 use rustc_lint::{LateContext, LintContext};
 use rustc_middle::lint::in_external_macro;
+use rustc_session::declare_tool_lint;
+
+declare_clippy_lint! {
+    /// **What it does:** Detects `loop + match` combinations that are easier
+    /// written as a `while let` loop.
+    ///
+    /// **Why is this bad?** The `while let` loop is usually shorter and more
+    /// readable.
+    ///
+    /// **Known problems:** Sometimes the wrong binding is displayed ([#383](https://github.com/rust-lang/rust-clippy/issues/383)).
+    ///
+    /// **Example:**
+    /// ```rust,no_run
+    /// # let y = Some(1);
+    /// loop {
+    ///     let x = match y {
+    ///         Some(x) => x,
+    ///         None => break,
+    ///     };
+    ///     // .. do something with x
+    /// }
+    /// // is easier written as
+    /// while let Some(x) = y {
+    ///     // .. do something with x
+    /// };
+    /// ```
+    pub WHILE_LET_LOOP,
+    complexity,
+    "`loop { if let { ... } else break }`, which can be written as a `while let` loop"
+}
 
 pub(super) fn check(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>, loop_block: &'tcx Block<'_>) {
     // extract the expression from the first statement (if any) in a block

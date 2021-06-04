@@ -4,9 +4,34 @@ use clippy_utils::{get_qpath_generic_tys, is_ty_param_diagnostic_item, is_ty_par
 use rustc_errors::Applicability;
 use rustc_hir::{self as hir, def_id::DefId, LangItem, QPath, TyKind};
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 
-use super::{utils, REDUNDANT_ALLOCATION};
+use super::utils;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for use of redundant allocations anywhere in the code.
+    ///
+    /// **Why is this bad?** Expressions such as `Rc<&T>`, `Rc<Rc<T>>`, `Rc<Box<T>>`, `Box<&T>`
+    /// add an unnecessary level of indirection.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # use std::rc::Rc;
+    /// fn foo(bar: Rc<&usize>) {}
+    /// ```
+    ///
+    /// Better:
+    ///
+    /// ```rust
+    /// fn foo(bar: &usize) {}
+    /// ```
+    pub REDUNDANT_ALLOCATION,
+    perf,
+    "redundant allocation"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, hir_ty: &hir::Ty<'_>, qpath: &QPath<'_>, def_id: DefId) -> bool {
     if Some(def_id) == cx.tcx.lang_items().owned_box() {

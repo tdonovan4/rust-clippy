@@ -6,7 +6,35 @@ use rustc_ast::ast;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_target::abi::LayoutOf;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for `.checked_add/sub(x).unwrap_or(MAX/MIN)`.
+    ///
+    /// **Why is this bad?** These can be written simply with `saturating_add/sub` methods.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// # let y: u32 = 0;
+    /// # let x: u32 = 100;
+    /// let add = x.checked_add(y).unwrap_or(u32::MAX);
+    /// let sub = x.checked_sub(y).unwrap_or(u32::MIN);
+    /// ```
+    ///
+    /// can be written using dedicated methods for saturating addition/subtraction as:
+    ///
+    /// ```rust
+    /// # let y: u32 = 0;
+    /// # let x: u32 = 100;
+    /// let add = x.saturating_add(y);
+    /// let sub = x.saturating_sub(y);
+    /// ```
+    pub MANUAL_SATURATING_ARITHMETIC,
+    style,
+    "`.chcked_add/sub(x).unwrap_or(MAX/MIN)`"
+}
 
 pub fn check(
     cx: &LateContext<'_>,
@@ -54,7 +82,7 @@ pub fn check(
     let mut applicability = Applicability::MachineApplicable;
     span_lint_and_sugg(
         cx,
-        super::MANUAL_SATURATING_ARITHMETIC,
+        MANUAL_SATURATING_ARITHMETIC,
         expr.span,
         "manual saturating arithmetic",
         &format!("try using `saturating_{}`", arith),

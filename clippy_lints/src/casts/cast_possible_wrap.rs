@@ -3,8 +3,32 @@ use clippy_utils::ty::is_isize_or_usize;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::Ty;
+use rustc_session::declare_tool_lint;
 
-use super::{utils, CAST_POSSIBLE_WRAP};
+use super::utils;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts from an unsigned type to a signed type of
+    /// the same size. Performing such a cast is a 'no-op' for the compiler,
+    /// i.e., nothing is changed at the bit level, and the binary representation of
+    /// the value is reinterpreted. This can cause wrapping if the value is too big
+    /// for the target signed type. However, the cast works as defined, so this lint
+    /// is `Allow` by default.
+    ///
+    /// **Why is this bad?** While such a cast is not bad in itself, the results can
+    /// be surprising when this is not the intended behavior, as demonstrated by the
+    /// example below.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// u32::MAX as i32; // will yield a value of `-1`
+    /// ```
+    pub CAST_POSSIBLE_WRAP,
+    pedantic,
+    "casts that may cause wrapping around the value, e.g., `x as i32` where `x: u32` and `x > i32::MAX`"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>, cast_from: Ty<'_>, cast_to: Ty<'_>) {
     if !(cast_from.is_integral() && cast_to.is_integral()) {

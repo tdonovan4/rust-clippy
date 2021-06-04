@@ -3,8 +3,31 @@ use clippy_utils::ty::is_isize_or_usize;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, FloatTy, Ty};
+use rustc_session::declare_tool_lint;
 
-use super::{utils, CAST_POSSIBLE_TRUNCATION};
+use super::utils;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts between numerical types that may
+    /// truncate large values. This is expected behavior, so the cast is `Allow` by
+    /// default.
+    ///
+    /// **Why is this bad?** In some problem domains, it is good practice to avoid
+    /// truncation. This lint can be activated to help assess where additional
+    /// checks could be beneficial.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// fn as_u8(x: u64) -> u8 {
+    ///     x as u8
+    /// }
+    /// ```
+    pub CAST_POSSIBLE_TRUNCATION,
+    pedantic,
+    "casts that may cause truncation of the value, e.g., `x as u8` where `x: u32`, or `x as i32` where `x: f32`"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>, cast_from: Ty<'_>, cast_to: Ty<'_>) {
     let msg = match (cast_from.is_integral(), cast_to.is_integral()) {

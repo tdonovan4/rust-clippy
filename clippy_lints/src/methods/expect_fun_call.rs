@@ -7,11 +7,45 @@ use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 use rustc_span::source_map::Span;
 use rustc_span::symbol::sym;
 use std::borrow::Cow;
 
-use super::EXPECT_FUN_CALL;
+declare_clippy_lint! {
+    /// **What it does:** Checks for calls to `.expect(&format!(...))`, `.expect(foo(..))`,
+    /// etc., and suggests to use `unwrap_or_else` instead
+    ///
+    /// **Why is this bad?** The function will always be called.
+    ///
+    /// **Known problems:** If the function has side-effects, not calling it will
+    /// change the semantics of the program, but you shouldn't rely on that anyway.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let foo = Some(String::new());
+    /// # let err_code = "418";
+    /// # let err_msg = "I'm a teapot";
+    /// foo.expect(&format!("Err {}: {}", err_code, err_msg));
+    /// ```
+    /// or
+    /// ```rust
+    /// # let foo = Some(String::new());
+    /// # let err_code = "418";
+    /// # let err_msg = "I'm a teapot";
+    /// foo.expect(format!("Err {}: {}", err_code, err_msg).as_str());
+    /// ```
+    /// this can instead be written:
+    /// ```rust
+    /// # let foo = Some(String::new());
+    /// # let err_code = "418";
+    /// # let err_msg = "I'm a teapot";
+    /// foo.unwrap_or_else(|| panic!("Err {}: {}", err_code, err_msg));
+    /// ```
+    pub EXPECT_FUN_CALL,
+    perf,
+    "using any `expect` method with a function call"
+}
 
 /// Checks for the `EXPECT_FUN_CALL` lint.
 #[allow(clippy::too_many_lines)]

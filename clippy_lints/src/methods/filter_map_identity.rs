@@ -4,9 +4,31 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::{source_map::Span, sym};
 
-use super::FILTER_MAP_IDENTITY;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `filter_map(|x| x)`.
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely by using `flatten`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// # let iter = vec![Some(1)].into_iter();
+    /// iter.filter_map(|x| x);
+    /// ```
+    /// Use instead:
+    /// ```rust
+    /// # let iter = vec![Some(1)].into_iter();
+    /// iter.flatten();
+    /// ```
+    pub FILTER_MAP_IDENTITY,
+    complexity,
+    "call to `filter_map` where `flatten` is sufficient"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, filter_map_arg: &hir::Expr<'_>, filter_map_span: Span) {
     if is_trait_method(cx, expr, sym::Iterator) {

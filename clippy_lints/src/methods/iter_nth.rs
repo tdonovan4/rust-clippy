@@ -4,9 +4,34 @@ use clippy_utils::diagnostics::span_lint_and_help;
 use clippy_utils::ty::is_type_diagnostic_item;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 
-use super::ITER_NTH;
+declare_clippy_lint! {
+    /// **What it does:** Checks for use of `.iter().nth()` (and the related
+    /// `.iter_mut().nth()`) on standard library types with O(1) element access.
+    ///
+    /// **Why is this bad?** `.get()` and `.get_mut()` are more efficient and more
+    /// readable.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let some_vec = vec![0, 1, 2, 3];
+    /// let bad_vec = some_vec.iter().nth(3);
+    /// let bad_slice = &some_vec[..].iter().nth(3);
+    /// ```
+    /// The correct use would be:
+    /// ```rust
+    /// let some_vec = vec![0, 1, 2, 3];
+    /// let bad_vec = some_vec.get(3);
+    /// let bad_slice = &some_vec[..].get(3);
+    /// ```
+    pub ITER_NTH,
+    perf,
+    "using `.iter().nth()` on a standard library type with O(1) element access"
+}
 
 pub(super) fn check<'tcx>(
     cx: &LateContext<'tcx>,

@@ -6,10 +6,33 @@ use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 use rustc_span::source_map::Span;
 use rustc_span::symbol::{sym, Symbol};
 
-use super::INTO_ITER_ON_REF;
+declare_clippy_lint! {
+    /// **What it does:** Checks for `into_iter` calls on references which should be replaced by `iter`
+    /// or `iter_mut`.
+    ///
+    /// **Why is this bad?** Readability. Calling `into_iter` on a reference will not move out its
+    /// content into the resulting iterator, which is confusing. It is better just call `iter` or
+    /// `iter_mut` directly.
+    ///
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// // Bad
+    /// let _ = (&vec![3, 4, 5]).into_iter();
+    ///
+    /// // Good
+    /// let _ = (&vec![3, 4, 5]).iter();
+    /// ```
+    pub INTO_ITER_ON_REF,
+    style,
+    "using `.into_iter()` on a reference"
+}
 
 pub(super) fn check(
     cx: &LateContext<'_>,

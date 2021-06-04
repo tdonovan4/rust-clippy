@@ -8,8 +8,32 @@ use rustc_hir::{Expr, ExprKind, Lit, UnOp};
 use rustc_lint::{LateContext, LintContext};
 use rustc_middle::lint::in_external_macro;
 use rustc_middle::ty::{self, FloatTy, InferTy, Ty};
+use rustc_session::declare_tool_lint;
 
-use super::UNNECESSARY_CAST;
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts to the same type, casts of int literals to integer types
+    /// and casts of float literals to float types.
+    ///
+    /// **Why is this bad?** It's just unnecessary.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let _ = 2i32 as i32;
+    /// let _ = 0.5 as f32;
+    /// ```
+    ///
+    /// Better:
+    ///
+    /// ```rust
+    /// let _ = 2_i32;
+    /// let _ = 0.5_f32;
+    /// ```
+    pub UNNECESSARY_CAST,
+    complexity,
+    "cast to the same type, e.g., `x as i32` where `x: i32`"
+}
 
 pub(super) fn check(
     cx: &LateContext<'_>,

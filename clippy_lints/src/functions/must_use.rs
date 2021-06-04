@@ -8,6 +8,7 @@ use rustc_middle::{
     lint::in_external_macro,
     ty::{self, Ty},
 };
+use rustc_session::declare_tool_lint;
 use rustc_span::Span;
 
 use clippy_utils::attrs::is_proc_macro;
@@ -16,7 +17,79 @@ use clippy_utils::source::snippet_opt;
 use clippy_utils::ty::is_must_use_ty;
 use clippy_utils::{attr_by_name, match_def_path, must_use_attr, return_ty, trait_ref_of_method};
 
-use super::{DOUBLE_MUST_USE, MUST_USE_CANDIDATE, MUST_USE_UNIT};
+declare_clippy_lint! {
+    /// **What it does:** Checks for a [`#[must_use]`] attribute on
+    /// unit-returning functions and methods.
+    ///
+    /// [`#[must_use]`]: https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-must_use-attribute
+    ///
+    /// **Why is this bad?** Unit values are useless. The attribute is likely
+    /// a remnant of a refactoring that removed the return type.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Examples:**
+    /// ```rust
+    /// #[must_use]
+    /// fn useless() { }
+    /// ```
+    pub MUST_USE_UNIT,
+    style,
+    "`#[must_use]` attribute on a unit-returning function / method"
+}
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for a [`#[must_use]`] attribute without
+    /// further information on functions and methods that return a type already
+    /// marked as `#[must_use]`.
+    ///
+    /// [`#[must_use]`]: https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-must_use-attribute
+    ///
+    /// **Why is this bad?** The attribute isn't needed. Not using the result
+    /// will already be reported. Alternatively, one can add some text to the
+    /// attribute to improve the lint message.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Examples:**
+    /// ```rust
+    /// #[must_use]
+    /// fn double_must_use() -> Result<(), ()> {
+    ///     unimplemented!();
+    /// }
+    /// ```
+    pub DOUBLE_MUST_USE,
+    style,
+    "`#[must_use]` attribute on a `#[must_use]`-returning function / method"
+}
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for public functions that have no
+    /// [`#[must_use]`] attribute, but return something not already marked
+    /// must-use, have no mutable arg and mutate no statics.
+    ///
+    /// [`#[must_use]`]: https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-must_use-attribute
+    ///
+    /// **Why is this bad?** Not bad at all, this lint just shows places where
+    /// you could add the attribute.
+    ///
+    /// **Known problems:** The lint only checks the arguments for mutable
+    /// types without looking if they are actually changed. On the other hand,
+    /// it also ignores a broad range of potentially interesting side effects,
+    /// because we cannot decide whether the programmer intends the function to
+    /// be called for the side effect or the result. Expect many false
+    /// positives. At least we don't lint if the result type is unit or already
+    /// `#[must_use]`.
+    ///
+    /// **Examples:**
+    /// ```rust
+    /// // this could be annotated with `#[must_use]`.
+    /// fn id<T>(t: T) -> T { t }
+    /// ```
+    pub MUST_USE_CANDIDATE,
+    pedantic,
+    "function or method that could take a `#[must_use]` attribute"
+}
 
 pub(super) fn check_item(cx: &LateContext<'tcx>, item: &'tcx hir::Item<'_>) {
     let attrs = cx.tcx.hir().attrs(item.hir_id());

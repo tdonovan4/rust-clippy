@@ -7,11 +7,48 @@ use rustc_errors::Applicability;
 use rustc_hir::{BindingAnnotation, Expr, ExprKind, MatchSource, Node, PatKind};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, adjustment::Adjust};
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::{sym, Symbol};
 use std::iter;
 
-use super::CLONE_DOUBLE_REF;
-use super::CLONE_ON_COPY;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `.clone()` on a `Copy` type.
+    ///
+    /// **Why is this bad?** The only reason `Copy` types implement `Clone` is for
+    /// generics, not for using the `clone` method on a concrete type.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// 42u64.clone();
+    /// ```
+    pub CLONE_ON_COPY,
+    complexity,
+    "using `clone` on a `Copy` type"
+}
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `.clone()` on an `&&T`.
+    ///
+    /// **Why is this bad?** Cloning an `&&T` copies the inner `&T`, instead of
+    /// cloning the underlying `T`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// fn main() {
+    ///     let x = vec![1];
+    ///     let y = &&x;
+    ///     let z = y.clone();
+    ///     println!("{:p} {:p}", *y, z); // prints out the same pointer
+    /// }
+    /// ```
+    pub CLONE_DOUBLE_REF,
+    correctness,
+    "using `clone` on `&&T`"
+}
 
 /// Checks for the `CLONE_ON_COPY` lint.
 #[allow(clippy::too_many_lines)]

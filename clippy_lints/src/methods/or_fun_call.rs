@@ -9,11 +9,41 @@ use rustc_hir as hir;
 use rustc_hir::{BlockCheckMode, UnsafeSource};
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 use rustc_span::source_map::Span;
 use rustc_span::symbol::sym;
 use std::borrow::Cow;
 
-use super::OR_FUN_CALL;
+declare_clippy_lint! {
+    /// **What it does:** Checks for calls to `.or(foo(..))`, `.unwrap_or(foo(..))`,
+    /// etc., and suggests to use `or_else`, `unwrap_or_else`, etc., or
+    /// `unwrap_or_default` instead.
+    ///
+    /// **Why is this bad?** The function will always be called and potentially
+    /// allocate an object acting as the default.
+    ///
+    /// **Known problems:** If the function has side-effects, not calling it will
+    /// change the semantic of the program, but you shouldn't rely on that anyway.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let foo = Some(String::new());
+    /// foo.unwrap_or(String::new());
+    /// ```
+    /// this can instead be written:
+    /// ```rust
+    /// # let foo = Some(String::new());
+    /// foo.unwrap_or_else(String::new);
+    /// ```
+    /// or
+    /// ```rust
+    /// # let foo = Some(String::new());
+    /// foo.unwrap_or_default();
+    /// ```
+    pub OR_FUN_CALL,
+    perf,
+    "using any `*or` method with a function call, which suggests `*or_else`"
+}
 
 /// Checks for the `OR_FUN_CALL` lint.
 #[allow(clippy::too_many_lines)]

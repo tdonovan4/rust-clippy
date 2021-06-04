@@ -1,8 +1,29 @@
-use super::NEVER_LOOP;
 use clippy_utils::diagnostics::span_lint;
 use rustc_hir::{Block, Expr, ExprKind, HirId, InlineAsmOperand, Stmt, StmtKind};
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use std::iter::{once, Iterator};
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for loops that will always `break`, `return` or
+    /// `continue` an outer loop.
+    ///
+    /// **Why is this bad?** This loop never loops, all it does is obfuscating the
+    /// code.
+    ///
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    /// ```rust
+    /// loop {
+    ///     ..;
+    ///     break;
+    /// }
+    /// ```
+    pub NEVER_LOOP,
+    correctness,
+    "any loop that will always `break` or `return`"
+}
 
 pub(super) fn check(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>) {
     if let ExprKind::Loop(block, _, _, _) = expr.kind {

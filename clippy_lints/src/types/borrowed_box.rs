@@ -8,8 +8,31 @@ use rustc_hir::{
     SyntheticTyParamKind, TyKind,
 };
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 
-use super::BORROWED_BOX;
+declare_clippy_lint! {
+    /// **What it does:** Checks for use of `&Box<T>` anywhere in the code.
+    /// Check the [Box documentation](https://doc.rust-lang.org/std/boxed/index.html) for more information.
+    ///
+    /// **Why is this bad?** Any `&Box<T>` can also be a `&T`, which is more
+    /// general.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust,ignore
+    /// fn foo(bar: &Box<T>) { ... }
+    /// ```
+    ///
+    /// Better:
+    ///
+    /// ```rust,ignore
+    /// fn foo(bar: &T) { ... }
+    /// ```
+    pub BORROWED_BOX,
+    complexity,
+    "a borrow of a boxed type"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, hir_ty: &hir::Ty<'_>, lt: &Lifetime, mut_ty: &MutTy<'_>) -> bool {
     match mut_ty.ty.kind {

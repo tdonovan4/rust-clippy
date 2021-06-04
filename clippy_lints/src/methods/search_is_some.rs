@@ -8,10 +8,38 @@ use rustc_hir as hir;
 use rustc_hir::PatKind;
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 use rustc_span::source_map::Span;
 use rustc_span::symbol::sym;
 
-use super::SEARCH_IS_SOME;
+declare_clippy_lint! {
+    /// **What it does:** Checks for an iterator or string search (such as `find()`,
+    /// `position()`, or `rposition()`) followed by a call to `is_some()` or `is_none()`.
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely as:
+    /// * `_.any(_)`, or `_.contains(_)` for `is_some()`,
+    /// * `!_.any(_)`, or `!_.contains(_)` for `is_none()`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let vec = vec![1];
+    /// vec.iter().find(|x| **x == 0).is_some();
+    ///
+    /// let _ = "hello world".find("world").is_none();
+    /// ```
+    /// Could be written as
+    /// ```rust
+    /// let vec = vec![1];
+    /// vec.iter().any(|x| *x == 0);
+    ///
+    /// let _ = !"hello world".contains("world");
+    /// ```
+    pub SEARCH_IS_SOME,
+    complexity,
+    "using an iterator or string search followed by `is_some()` or `is_none()`, which is more succinctly expressed as a call to `any()` or `contains()` (with negation in case of `is_none()`)"
+}
 
 /// lint searching an Iterator followed by `is_some()`
 /// or calling `find()` on a string followed by `is_some()` or `is_none()`

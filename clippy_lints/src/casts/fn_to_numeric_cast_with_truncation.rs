@@ -4,8 +4,39 @@ use rustc_errors::Applicability;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 
-use super::{utils, FN_TO_NUMERIC_CAST_WITH_TRUNCATION};
+use super::utils;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts of a function pointer to a numeric type not wide enough to
+    /// store address.
+    ///
+    /// **Why is this bad?**
+    /// Such a cast discards some bits of the function's address. If this is intended, it would be more
+    /// clearly expressed by casting to usize first, then casting the usize to the intended type (with
+    /// a comment) to perform the truncation.
+    ///
+    /// **Example**
+    ///
+    /// ```rust
+    /// // Bad
+    /// fn fn1() -> i16 {
+    ///     1
+    /// };
+    /// let _ = fn1 as i32;
+    ///
+    /// // Better: Cast to usize first, then comment with the reason for the truncation
+    /// fn fn2() -> i16 {
+    ///     1
+    /// };
+    /// let fn_ptr = fn2 as usize;
+    /// let fn_ptr_truncated = fn_ptr as i32;
+    /// ```
+    pub FN_TO_NUMERIC_CAST_WITH_TRUNCATION,
+    style,
+    "casting a function pointer to a numeric type not wide enough to store the address"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>, cast_expr: &Expr<'_>, cast_from: Ty<'_>, cast_to: Ty<'_>) {
     // We only want to check casts to `ty::Uint` or `ty::Int`

@@ -1,4 +1,3 @@
-use super::EXPLICIT_ITER_LOOP;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::source::snippet_with_applicability;
 use clippy_utils::ty::{is_type_diagnostic_item, match_type};
@@ -7,7 +6,37 @@ use rustc_errors::Applicability;
 use rustc_hir::{Expr, Mutability};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty, TyS};
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for loops on `x.iter()` where `&x` will do, and
+    /// suggests the latter.
+    ///
+    /// **Why is this bad?** Readability.
+    ///
+    /// **Known problems:** False negatives. We currently only warn on some known
+    /// types.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// // with `y` a `Vec` or slice:
+    /// # let y = vec![1];
+    /// for x in y.iter() {
+    ///     // ..
+    /// }
+    /// ```
+    /// can be rewritten to
+    /// ```rust
+    /// # let y = vec![1];
+    /// for x in &y {
+    ///     // ..
+    /// }
+    /// ```
+    pub EXPLICIT_ITER_LOOP,
+    pedantic,
+    "for-looping over `_.iter()` or `_.iter_mut()` when `&_` or `&mut _` would do"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, args: &[Expr<'_>], arg: &Expr<'_>, method_name: &str) {
     let should_lint = match method_name {

@@ -1,12 +1,45 @@
 use rustc_hir::{self as hir, intravisit, HirIdSet};
 use rustc_lint::LateContext;
 use rustc_middle::{hir::map::Map, ty};
+use rustc_session::declare_tool_lint;
 
 use clippy_utils::diagnostics::span_lint;
 use clippy_utils::ty::type_is_unsafe_function;
 use clippy_utils::{iter_input_pats, path_to_local};
 
-use super::NOT_UNSAFE_PTR_ARG_DEREF;
+declare_clippy_lint! {
+    /// **What it does:** Checks for public functions that dereference raw pointer
+    /// arguments but are not marked `unsafe`.
+    ///
+    /// **Why is this bad?** The function should probably be marked `unsafe`, since
+    /// for an arbitrary raw pointer, there is no way of telling for sure if it is
+    /// valid.
+    ///
+    /// **Known problems:**
+    ///
+    /// * It does not check functions recursively so if the pointer is passed to a
+    /// private non-`unsafe` function which does the dereferencing, the lint won't
+    /// trigger.
+    /// * It only checks for arguments whose type are raw pointers, not raw pointers
+    /// got from an argument in some other way (`fn foo(bar: &[*const u8])` or
+    /// `some_argument.get_raw_ptr()`).
+    ///
+    /// **Example:**
+    /// ```rust,ignore
+    /// // Bad
+    /// pub fn foo(x: *const u8) {
+    ///     println!("{}", unsafe { *x });
+    /// }
+    ///
+    /// // Good
+    /// pub unsafe fn foo(x: *const u8) {
+    ///     println!("{}", unsafe { *x });
+    /// }
+    /// ```
+    pub NOT_UNSAFE_PTR_ARG_DEREF,
+    correctness,
+    "public functions dereferencing raw pointer arguments but not marked `unsafe`"
+}
 
 pub(super) fn check_fn(
     cx: &LateContext<'tcx>,

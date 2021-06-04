@@ -1,4 +1,3 @@
-use super::TRANSMUTE_FLOAT_TO_INT;
 use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::sugg;
 use if_chain::if_chain;
@@ -7,6 +6,29 @@ use rustc_errors::Applicability;
 use rustc_hir::{Expr, ExprKind, UnOp};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for transmutes from a float to an integer.
+    ///
+    /// **Why is this bad?** Transmutes are dangerous and error-prone, whereas `to_bits` is intuitive
+    /// and safe.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// unsafe {
+    ///     let _: u32 = std::mem::transmute(1f32);
+    /// }
+    ///
+    /// // should be:
+    /// let _: u32 = 1f32.to_bits();
+    /// ```
+    pub TRANSMUTE_FLOAT_TO_INT,
+    complexity,
+    "transmutes from a float to an integer"
+}
 
 /// Checks for `transmute_float_to_int` lint.
 /// Returns `true` if it's triggered, otherwise returns `false`.

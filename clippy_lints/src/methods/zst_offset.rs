@@ -3,8 +3,24 @@ use if_chain::if_chain;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 
-use super::ZST_OFFSET;
+declare_clippy_lint! {
+    /// **What it does:** Checks for `offset(_)`, `wrapping_`{`add`, `sub`}, etc. on raw pointers to
+    /// zero-sized types
+    ///
+    /// **Why is this bad?** This is a no-op, and likely unintended
+    ///
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    /// ```rust
+    /// unsafe { (&() as *const ()).offset(1) };
+    /// ```
+    pub ZST_OFFSET,
+    correctness,
+    "Check for offset calculations on raw pointers to zero-sized types"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, recv: &hir::Expr<'_>) {
     if_chain! {

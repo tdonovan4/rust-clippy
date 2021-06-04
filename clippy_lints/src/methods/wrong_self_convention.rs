@@ -3,11 +3,78 @@ use clippy_utils::diagnostics::span_lint_and_help;
 use clippy_utils::ty::is_copy;
 use rustc_lint::LateContext;
 use rustc_middle::ty::TyS;
+use rustc_session::declare_tool_lint;
 use rustc_span::source_map::Span;
 use std::fmt;
 
-use super::WRONG_PUB_SELF_CONVENTION;
-use super::WRONG_SELF_CONVENTION;
+declare_clippy_lint! {
+    /// **What it does:** Checks for methods with certain name prefixes and which
+    /// doesn't match how self is taken. The actual rules are:
+    ///
+    /// |Prefix |Postfix     |`self` taken           | `self` type  |
+    /// |-------|------------|-----------------------|--------------|
+    /// |`as_`  | none       |`&self` or `&mut self` | any          |
+    /// |`from_`| none       | none                  | any          |
+    /// |`into_`| none       |`self`                 | any          |
+    /// |`is_`  | none       |`&self` or none        | any          |
+    /// |`to_`  | `_mut`     |`&mut self`            | any          |
+    /// |`to_`  | not `_mut` |`self`                 | `Copy`       |
+    /// |`to_`  | not `_mut` |`&self`                | not `Copy`   |
+    ///
+    /// Note: Clippy doesn't trigger methods with `to_` prefix in:
+    /// - Traits definition.
+    /// Clippy can not tell if a type that implements a trait is `Copy` or not.
+    /// - Traits implementation, when `&self` is taken.
+    /// The method signature is controlled by the trait and often `&self` is required for all types that implement the trait
+    /// (see e.g. the `std::string::ToString` trait).
+    ///
+    /// Please find more info here:
+    /// https://rust-lang.github.io/api-guidelines/naming.html#ad-hoc-conversions-follow-as_-to_-into_-conventions-c-conv
+    ///
+    /// **Why is this bad?** Consistency breeds readability. If you follow the
+    /// conventions, your users won't be surprised that they, e.g., need to supply a
+    /// mutable reference to a `as_..` function.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # struct X;
+    /// impl X {
+    ///     fn as_str(self) -> &'static str {
+    ///         // ..
+    /// # ""
+    ///     }
+    /// }
+    /// ```
+    pub WRONG_SELF_CONVENTION,
+    style,
+    "defining a method named with an established prefix (like \"into_\") that takes `self` with the wrong convention"
+}
+
+declare_clippy_lint! {
+    /// **What it does:** This is the same as
+    /// [`wrong_self_convention`](#wrong_self_convention), but for public items.
+    ///
+    /// **Why is this bad?** See [`wrong_self_convention`](#wrong_self_convention).
+    ///
+    /// **Known problems:** Actually *renaming* the function may break clients if
+    /// the function is part of the public interface. In that case, be mindful of
+    /// the stability guarantees you've given your users.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # struct X;
+    /// impl<'a> X {
+    ///     pub fn as_str(self) -> &'a str {
+    ///         "foo"
+    ///     }
+    /// }
+    /// ```
+    pub WRONG_PUB_SELF_CONVENTION,
+    restriction,
+    "defining a public method named with an established prefix (like \"into_\") that takes `self` with the wrong convention"
+}
 
 #[rustfmt::skip]
 const CONVENTIONS: [(&[Convention], &[SelfKind]); 9] = [

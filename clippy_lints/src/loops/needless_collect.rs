@@ -1,4 +1,3 @@
-use super::NEEDLESS_COLLECT;
 use clippy_utils::diagnostics::{span_lint_and_sugg, span_lint_and_then};
 use clippy_utils::source::snippet;
 use clippy_utils::sugg::Sugg;
@@ -10,8 +9,31 @@ use rustc_hir::intravisit::{walk_block, walk_expr, NestedVisitorMap, Visitor};
 use rustc_hir::{Block, Expr, ExprKind, GenericArg, HirId, Local, Pat, PatKind, QPath, StmtKind};
 use rustc_lint::LateContext;
 use rustc_middle::hir::map::Map;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::{sym, Ident};
 use rustc_span::{MultiSpan, Span};
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for functions collecting an iterator when collect
+    /// is not needed.
+    ///
+    /// **Why is this bad?** `collect` causes the allocation of a new data structure,
+    /// when this allocation may not be needed.
+    ///
+    /// **Known problems:**
+    /// None
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let iterator = vec![1].into_iter();
+    /// let len = iterator.clone().collect::<Vec<_>>().len();
+    /// // should be
+    /// let len = iterator.count();
+    /// ```
+    pub NEEDLESS_COLLECT,
+    perf,
+    "collecting an iterator when collect is not needed"
+}
 
 const NEEDLESS_COLLECT_MSG: &str = "avoid using `collect()` when not needed";
 

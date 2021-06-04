@@ -9,8 +9,38 @@ use rustc_hir::{Expr, ExprKind, Mutability, TyKind};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, TypeAndMut};
 use rustc_semver::RustcVersion;
+use rustc_session::declare_tool_lint;
 
-use super::PTR_AS_PTR;
+declare_clippy_lint! {
+    /// **What it does:**
+    /// Checks for `as` casts between raw pointers without changing its mutability,
+    /// namely `*const T` to `*const U` and `*mut T` to `*mut U`.
+    ///
+    /// **Why is this bad?**
+    /// Though `as` casts between raw pointers is not terrible, `pointer::cast` is safer because
+    /// it cannot accidentally change the pointer's mutability nor cast the pointer to other types like `usize`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// let ptr: *const u32 = &42_u32;
+    /// let mut_ptr: *mut u32 = &mut 42_u32;
+    /// let _ = ptr as *const i32;
+    /// let _ = mut_ptr as *mut i32;
+    /// ```
+    /// Use instead:
+    /// ```rust
+    /// let ptr: *const u32 = &42_u32;
+    /// let mut_ptr: *mut u32 = &mut 42_u32;
+    /// let _ = ptr.cast::<i32>();
+    /// let _ = mut_ptr.cast::<i32>();
+    /// ```
+    pub PTR_AS_PTR,
+    pedantic,
+    "casting using `as` from and to raw pointers that doesn't change its mutability, where `pointer::cast` could take the place of `as`"
+}
 
 const PTR_AS_PTR_MSRV: RustcVersion = RustcVersion::new(1, 38, 0);
 

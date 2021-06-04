@@ -4,8 +4,39 @@ use if_chain::if_chain;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 
-use super::UNINIT_ASSUMED_INIT;
+declare_clippy_lint! {
+    /// **What it does:** Checks for `MaybeUninit::uninit().assume_init()`.
+    ///
+    /// **Why is this bad?** For most types, this is undefined behavior.
+    ///
+    /// **Known problems:** For now, we accept empty tuples and tuples / arrays
+    /// of `MaybeUninit`. There may be other types that allow uninitialized
+    /// data, but those are not yet rigorously defined.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// // Beware the UB
+    /// use std::mem::MaybeUninit;
+    ///
+    /// let _: usize = unsafe { MaybeUninit::uninit().assume_init() };
+    /// ```
+    ///
+    /// Note that the following is OK:
+    ///
+    /// ```rust
+    /// use std::mem::MaybeUninit;
+    ///
+    /// let _: [MaybeUninit<bool>; 5] = unsafe {
+    ///     MaybeUninit::uninit().assume_init()
+    /// };
+    /// ```
+    pub UNINIT_ASSUMED_INIT,
+    correctness,
+    "`MaybeUninit::uninit().assume_init()`"
+}
 
 /// lint for `MaybeUninit::uninit().assume_init()` (we already have the latter)
 pub(super) fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, recv: &hir::Expr<'_>) {

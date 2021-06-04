@@ -1,10 +1,38 @@
 use super::utils::is_layout_incompatible;
-use super::UNSOUND_COLLECTION_TRANSMUTE;
 use clippy_utils::diagnostics::span_lint;
 use clippy_utils::{match_def_path, paths};
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for transmutes between collections whose
+    /// types have different ABI, size or alignment.
+    ///
+    /// **Why is this bad?** This is undefined behavior.
+    ///
+    /// **Known problems:** Currently, we cannot know whether a type is a
+    /// collection, so we just lint the ones that come with `std`.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// // different size, therefore likely out-of-bounds memory access
+    /// // You absolutely do not want this in your code!
+    /// unsafe {
+    ///     std::mem::transmute::<_, Vec<u32>>(vec![2_u16])
+    /// };
+    /// ```
+    ///
+    /// You must always iterate, map and collect the values:
+    ///
+    /// ```rust
+    /// vec![2_u16].into_iter().map(u32::from).collect::<Vec<_>>();
+    /// ```
+    pub UNSOUND_COLLECTION_TRANSMUTE,
+    correctness,
+    "transmute between collections of layout-incompatible types"
+}
 
 // used to check for UNSOUND_COLLECTION_TRANSMUTE
 static COLLECTIONS: &[&[&str]] = &[

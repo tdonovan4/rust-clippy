@@ -1,9 +1,55 @@
 use clippy_utils::diagnostics::span_lint;
 use rustc_hir::{BinOpKind, Expr, ExprKind};
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::hygiene::{ExpnKind, MacroKind};
 
-use super::UNIT_CMP;
+declare_clippy_lint! {
+    /// **What it does:** Checks for comparisons to unit. This includes all binary
+    /// comparisons (like `==` and `<`) and asserts.
+    ///
+    /// **Why is this bad?** Unit is always equal to itself, and thus is just a
+    /// clumsily written constant. Mostly this happens when someone accidentally
+    /// adds semicolons at the end of the operands.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # fn foo() {};
+    /// # fn bar() {};
+    /// # fn baz() {};
+    /// if {
+    ///     foo();
+    /// } == {
+    ///     bar();
+    /// } {
+    ///     baz();
+    /// }
+    /// ```
+    /// is equal to
+    /// ```rust
+    /// # fn foo() {};
+    /// # fn bar() {};
+    /// # fn baz() {};
+    /// {
+    ///     foo();
+    ///     bar();
+    ///     baz();
+    /// }
+    /// ```
+    ///
+    /// For asserts:
+    /// ```rust
+    /// # fn foo() {};
+    /// # fn bar() {};
+    /// assert_eq!({ foo(); }, { bar(); });
+    /// ```
+    /// will always succeed
+    pub UNIT_CMP,
+    correctness,
+    "comparing unit values"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>) {
     if expr.span.from_expansion() {

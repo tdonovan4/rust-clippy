@@ -1,4 +1,4 @@
-use super::{TRANSMUTE_BYTES_TO_STR, TRANSMUTE_PTR_TO_PTR};
+use super::TRANSMUTE_PTR_TO_PTR;
 use clippy_utils::diagnostics::{span_lint_and_sugg, span_lint_and_then};
 use clippy_utils::source::snippet;
 use clippy_utils::sugg;
@@ -7,6 +7,38 @@ use rustc_errors::Applicability;
 use rustc_hir::{Expr, Mutability};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for transmutes from a `&[u8]` to a `&str`.
+    ///
+    /// **Why is this bad?** Not every byte slice is a valid UTF-8 string.
+    ///
+    /// **Known problems:**
+    /// - [`from_utf8`] which this lint suggests using is slower than `transmute`
+    /// as it needs to validate the input.
+    /// If you are certain that the input is always a valid UTF-8,
+    /// use [`from_utf8_unchecked`] which is as fast as `transmute`
+    /// but has a semantically meaningful name.
+    /// - You might want to handle errors returned from [`from_utf8`] instead of calling `unwrap`.
+    ///
+    /// [`from_utf8`]: https://doc.rust-lang.org/std/str/fn.from_utf8.html
+    /// [`from_utf8_unchecked`]: https://doc.rust-lang.org/std/str/fn.from_utf8_unchecked.html
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let b: &[u8] = &[1_u8, 2_u8];
+    /// unsafe {
+    ///     let _: &str = std::mem::transmute(b); // where b: &[u8]
+    /// }
+    ///
+    /// // should be:
+    /// let _ = std::str::from_utf8(b).unwrap();
+    /// ```
+    pub TRANSMUTE_BYTES_TO_STR,
+    complexity,
+    "transmutes from a `&[u8]` to a `&str`"
+}
 
 /// Checks for `transmute_bytes_to_str` and `transmute_ptr_to_ptr` lints.
 /// Returns `true` if either one triggered, otherwise returns `false`.

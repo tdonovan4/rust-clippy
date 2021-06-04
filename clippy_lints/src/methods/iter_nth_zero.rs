@@ -6,9 +6,36 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
 
-use super::ITER_NTH_ZERO;
+declare_clippy_lint! {
+    /// **What it does:** Checks for the use of `iter.nth(0)`.
+    ///
+    /// **Why is this bad?** `iter.next()` is equivalent to
+    /// `iter.nth(0)`, as they both consume the next element,
+    ///  but is more readable.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// # use std::collections::HashSet;
+    /// // Bad
+    /// # let mut s = HashSet::new();
+    /// # s.insert(1);
+    /// let x = s.iter().nth(0);
+    ///
+    /// // Good
+    /// # let mut s = HashSet::new();
+    /// # s.insert(1);
+    /// let x = s.iter().next();
+    /// ```
+    pub ITER_NTH_ZERO,
+    style,
+    "replace `iter.nth(0)` with `iter.next()`"
+}
 
 pub(super) fn check<'tcx>(cx: &LateContext<'tcx>, expr: &hir::Expr<'_>, recv: &hir::Expr<'_>, arg: &hir::Expr<'_>) {
     if_chain! {

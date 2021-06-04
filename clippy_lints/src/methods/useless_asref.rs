@@ -6,8 +6,32 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 
-use super::USELESS_ASREF;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `.as_ref()` or `.as_mut()` where the
+    /// types before and after the call are the same.
+    ///
+    /// **Why is this bad?** The call is unnecessary.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # fn do_stuff(x: &[i32]) {}
+    /// let x: &[i32] = &[1, 2, 3, 4, 5];
+    /// do_stuff(x.as_ref());
+    /// ```
+    /// The correct use would be:
+    /// ```rust
+    /// # fn do_stuff(x: &[i32]) {}
+    /// let x: &[i32] = &[1, 2, 3, 4, 5];
+    /// do_stuff(x);
+    /// ```
+    pub USELESS_ASREF,
+    complexity,
+    "using `as_ref` where the types before and after the call are the same"
+}
 
 /// Checks for the `USELESS_ASREF` lint.
 pub(super) fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, call_name: &str, recvr: &hir::Expr<'_>) {

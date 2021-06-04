@@ -5,9 +5,31 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
 
-use super::ITER_CLONED_COLLECT;
+declare_clippy_lint! {
+    /// **What it does:** Checks for the use of `.cloned().collect()` on slice to
+    /// create a `Vec`.
+    ///
+    /// **Why is this bad?** `.to_vec()` is clearer
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let s = [1, 2, 3, 4, 5];
+    /// let s2: Vec<isize> = s[..].iter().cloned().collect();
+    /// ```
+    /// The better use would be:
+    /// ```rust
+    /// let s = [1, 2, 3, 4, 5];
+    /// let s2: Vec<isize> = s.to_vec();
+    /// ```
+    pub ITER_CLONED_COLLECT,
+    style,
+    "using `.cloned().collect()` on slice to create a `Vec`"
+}
 
 pub(super) fn check<'tcx>(cx: &LateContext<'tcx>, expr: &hir::Expr<'_>, recv: &'tcx hir::Expr<'_>) {
     if_chain! {

@@ -1,4 +1,4 @@
-use super::{contains_return, BIND_INSTEAD_OF_MAP};
+use super::contains_return;
 use clippy_utils::diagnostics::{multispan_sugg_with_applicability, span_lint_and_sugg, span_lint_and_then};
 use clippy_utils::source::{snippet, snippet_with_macro_callsite};
 use clippy_utils::{in_macro, remove_blocks, visitors::find_all_ret_expressions};
@@ -9,7 +9,41 @@ use rustc_hir::def::{CtorKind, CtorOf, DefKind, Res};
 use rustc_hir::{LangItem, QPath};
 use rustc_lint::LateContext;
 use rustc_middle::ty::DefIdTree;
+use rustc_session::declare_tool_lint;
 use rustc_span::Span;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `_.and_then(|x| Some(y))`, `_.and_then(|x| Ok(y))` or
+    /// `_.or_else(|x| Err(y))`.
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely as
+    /// `_.map(|x| y)` or `_.map_err(|x| y)`.
+    ///
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// # fn opt() -> Option<&'static str> { Some("42") }
+    /// # fn res() -> Result<&'static str, &'static str> { Ok("42") }
+    /// let _ = opt().and_then(|s| Some(s.len()));
+    /// let _ = res().and_then(|s| if s.len() == 42 { Ok(10) } else { Ok(20) });
+    /// let _ = res().or_else(|s| if s.len() == 42 { Err(10) } else { Err(20) });
+    /// ```
+    ///
+    /// The correct use would be:
+    ///
+    /// ```rust
+    /// # fn opt() -> Option<&'static str> { Some("42") }
+    /// # fn res() -> Result<&'static str, &'static str> { Ok("42") }
+    /// let _ = opt().map(|s| s.len());
+    /// let _ = res().map(|s| if s.len() == 42 { 10 } else { 20 });
+    /// let _ = res().map_err(|s| if s.len() == 42 { 10 } else { 20 });
+    /// ```
+    pub BIND_INSTEAD_OF_MAP,
+    complexity,
+    "using `Option.and_then(|x| Some(y))`, which is more succinctly expressed as `map(|x| y)`"
+}
 
 pub(crate) struct OptionAndThenSome;
 

@@ -3,8 +3,41 @@ use if_chain::if_chain;
 use rustc_hir::{Expr, ExprKind, MutTy, Mutability, TyKind, UnOp};
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 
-use super::CAST_REF_TO_MUT;
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts of `&T` to `&mut T` anywhere in the code.
+    ///
+    /// **Why is this bad?** It’s basically guaranteed to be undefined behaviour.
+    /// `UnsafeCell` is the only way to obtain aliasable data that is considered
+    /// mutable.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust,ignore
+    /// fn x(r: &i32) {
+    ///     unsafe {
+    ///         *(r as *const _ as *mut _) += 1;
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Instead consider using interior mutability types.
+    ///
+    /// ```rust
+    /// use std::cell::UnsafeCell;
+    ///
+    /// fn x(r: &UnsafeCell<i32>) {
+    ///     unsafe {
+    ///         *r.get() += 1;
+    ///     }
+    /// }
+    /// ```
+    pub CAST_REF_TO_MUT,
+    correctness,
+    "a cast of reference to a mutable pointer"
+}
 
 pub(super) fn check(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>) {
     if_chain! {

@@ -7,9 +7,31 @@ use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::{sym, Symbol};
 
-use super::INEFFICIENT_TO_STRING;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `.to_string()` on an `&&T` where
+    /// `T` implements `ToString` directly (like `&&str` or `&&String`).
+    ///
+    /// **Why is this bad?** This bypasses the specialized implementation of
+    /// `ToString` and instead goes through the more expensive string formatting
+    /// facilities.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// // Generic implementation for `T: Display` is used (slow)
+    /// ["foo", "bar"].iter().map(|s| s.to_string());
+    ///
+    /// // OK, the specialized impl is used
+    /// ["foo", "bar"].iter().map(|&s| s.to_string());
+    /// ```
+    pub INEFFICIENT_TO_STRING,
+    pedantic,
+    "using `to_string` on `&&T` where `T: ToString`"
+}
 
 /// Checks for the `INEFFICIENT_TO_STRING` lint
 pub fn check<'tcx>(cx: &LateContext<'tcx>, expr: &hir::Expr<'_>, method_name: Symbol, args: &[hir::Expr<'_>]) {

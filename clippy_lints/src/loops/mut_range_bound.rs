@@ -1,4 +1,3 @@
-use super::MUT_RANGE_BOUND;
 use clippy_utils::diagnostics::span_lint;
 use clippy_utils::{higher, path_to_local};
 use if_chain::if_chain;
@@ -6,8 +5,29 @@ use rustc_hir::{BindingAnnotation, Expr, HirId, Node, PatKind};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
 use rustc_middle::{mir::FakeReadCause, ty};
+use rustc_session::declare_tool_lint;
 use rustc_span::source_map::Span;
 use rustc_typeck::expr_use_visitor::{ConsumeMode, Delegate, ExprUseVisitor, PlaceBase, PlaceWithHirId};
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for loops which have a range bound that is a mutable variable
+    ///
+    /// **Why is this bad?** One might think that modifying the mutable variable changes the loop bounds
+    ///
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let mut foo = 42;
+    /// for i in 0..foo {
+    ///     foo -= 1;
+    ///     println!("{}", i); // prints numbers from 0 to 42, not 0 to 21
+    /// }
+    /// ```
+    pub MUT_RANGE_BOUND,
+    complexity,
+    "for loop over a range where one of the bounds is a mutable variable"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, arg: &Expr<'_>, body: &Expr<'_>) {
     if let Some(higher::Range {

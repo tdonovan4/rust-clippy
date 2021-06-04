@@ -1,4 +1,4 @@
-use super::{get_span_of_entire_for_loop, IncrementVisitor, InitializeVisitor, MANUAL_MEMCPY};
+use super::{get_span_of_entire_for_loop, IncrementVisitor, InitializeVisitor};
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::source::snippet;
 use clippy_utils::sugg::Sugg;
@@ -11,8 +11,36 @@ use rustc_hir::intravisit::walk_block;
 use rustc_hir::{BinOpKind, Block, Expr, ExprKind, HirId, Pat, PatKind, StmtKind};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 use std::iter::Iterator;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for for-loops that manually copy items between
+    /// slices that could be optimized by having a memcpy.
+    ///
+    /// **Why is this bad?** It is not as fast as a memcpy.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let src = vec![1];
+    /// # let mut dst = vec![0; 65];
+    /// for i in 0..src.len() {
+    ///     dst[i + 64] = src[i];
+    /// }
+    /// ```
+    /// Could be written as:
+    /// ```rust
+    /// # let src = vec![1];
+    /// # let mut dst = vec![0; 65];
+    /// dst[64..(src.len() + 64)].clone_from_slice(&src[..]);
+    /// ```
+    pub MANUAL_MEMCPY,
+    perf,
+    "manually copying items between slices"
+}
 
 /// Checks for for loops that sequentially copy items from one slice-like
 /// object to another.

@@ -31,6 +31,8 @@ use std::cmp::Ordering;
 use std::collections::hash_map::Entry;
 use std::ops::Bound;
 
+pub use redundant_pattern_match::REDUNDANT_PATTERN_MATCHING;
+
 declare_clippy_lint! {
     /// **What it does:** Checks for matches with a single arm where an `if let`
     /// will usually suffice.
@@ -412,54 +414,6 @@ declare_clippy_lint! {
     pub REST_PAT_IN_FULLY_BOUND_STRUCTS,
     restriction,
     "a match on a struct that binds all fields but still uses the wildcard pattern"
-}
-
-declare_clippy_lint! {
-    /// **What it does:** Lint for redundant pattern matching over `Result`, `Option`,
-    /// `std::task::Poll` or `std::net::IpAddr`
-    ///
-    /// **Why is this bad?** It's more concise and clear to just use the proper
-    /// utility function
-    ///
-    /// **Known problems:** None.
-    ///
-    /// **Example:**
-    ///
-    /// ```rust
-    /// # use std::task::Poll;
-    /// # use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-    /// if let Ok(_) = Ok::<i32, i32>(42) {}
-    /// if let Err(_) = Err::<i32, i32>(42) {}
-    /// if let None = None::<()> {}
-    /// if let Some(_) = Some(42) {}
-    /// if let Poll::Pending = Poll::Pending::<()> {}
-    /// if let Poll::Ready(_) = Poll::Ready(42) {}
-    /// if let IpAddr::V4(_) = IpAddr::V4(Ipv4Addr::LOCALHOST) {}
-    /// if let IpAddr::V6(_) = IpAddr::V6(Ipv6Addr::LOCALHOST) {}
-    /// match Ok::<i32, i32>(42) {
-    ///     Ok(_) => true,
-    ///     Err(_) => false,
-    /// };
-    /// ```
-    ///
-    /// The more idiomatic use would be:
-    ///
-    /// ```rust
-    /// # use std::task::Poll;
-    /// # use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-    /// if Ok::<i32, i32>(42).is_ok() {}
-    /// if Err::<i32, i32>(42).is_err() {}
-    /// if None::<()>.is_none() {}
-    /// if Some(42).is_some() {}
-    /// if Poll::Pending::<()>.is_pending() {}
-    /// if Poll::Ready(42).is_ready() {}
-    /// if IpAddr::V4(Ipv4Addr::LOCALHOST).is_ipv4() {}
-    /// if IpAddr::V6(Ipv6Addr::LOCALHOST).is_ipv6() {}
-    /// Ok::<i32, i32>(42).is_ok();
-    /// ```
-    pub REDUNDANT_PATTERN_MATCHING,
-    style,
-    "use the proper utility function avoiding an `if let`"
 }
 
 declare_clippy_lint! {
@@ -1696,7 +1650,6 @@ where
 }
 
 mod redundant_pattern_match {
-    use super::REDUNDANT_PATTERN_MATCHING;
     use clippy_utils::diagnostics::span_lint_and_then;
     use clippy_utils::source::snippet;
     use clippy_utils::{is_trait_method, match_qpath, paths};
@@ -1705,7 +1658,56 @@ mod redundant_pattern_match {
     use rustc_errors::Applicability;
     use rustc_hir::{Arm, Expr, ExprKind, MatchSource, PatKind, QPath};
     use rustc_lint::LateContext;
+    use rustc_session::declare_tool_lint;
     use rustc_span::sym;
+
+    declare_clippy_lint! {
+        /// **What it does:** Lint for redundant pattern matching over `Result`, `Option`,
+        /// `std::task::Poll` or `std::net::IpAddr`
+        ///
+        /// **Why is this bad?** It's more concise and clear to just use the proper
+        /// utility function
+        ///
+        /// **Known problems:** None.
+        ///
+        /// **Example:**
+        ///
+        /// ```rust
+        /// # use std::task::Poll;
+        /// # use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+        /// if let Ok(_) = Ok::<i32, i32>(42) {}
+        /// if let Err(_) = Err::<i32, i32>(42) {}
+        /// if let None = None::<()> {}
+        /// if let Some(_) = Some(42) {}
+        /// if let Poll::Pending = Poll::Pending::<()> {}
+        /// if let Poll::Ready(_) = Poll::Ready(42) {}
+        /// if let IpAddr::V4(_) = IpAddr::V4(Ipv4Addr::LOCALHOST) {}
+        /// if let IpAddr::V6(_) = IpAddr::V6(Ipv6Addr::LOCALHOST) {}
+        /// match Ok::<i32, i32>(42) {
+        ///     Ok(_) => true,
+        ///     Err(_) => false,
+        /// };
+        /// ```
+        ///
+        /// The more idiomatic use would be:
+        ///
+        /// ```rust
+        /// # use std::task::Poll;
+        /// # use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+        /// if Ok::<i32, i32>(42).is_ok() {}
+        /// if Err::<i32, i32>(42).is_err() {}
+        /// if None::<()>.is_none() {}
+        /// if Some(42).is_some() {}
+        /// if Poll::Pending::<()>.is_pending() {}
+        /// if Poll::Ready(42).is_ready() {}
+        /// if IpAddr::V4(Ipv4Addr::LOCALHOST).is_ipv4() {}
+        /// if IpAddr::V6(Ipv6Addr::LOCALHOST).is_ipv6() {}
+        /// Ok::<i32, i32>(42).is_ok();
+        /// ```
+        pub REDUNDANT_PATTERN_MATCHING,
+        style,
+        "use the proper utility function avoiding an `if let`"
+    }
 
     pub fn check<'tcx>(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>) {
         if let ExprKind::Match(op, arms, ref match_source) = &expr.kind {

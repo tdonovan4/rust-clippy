@@ -5,13 +5,33 @@ use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::Symbol;
 
-use super::SINGLE_CHAR_PATTERN;
+declare_clippy_lint! {
+    /// **What it does:** Checks for string methods that receive a single-character
+    /// `str` as an argument, e.g., `_.split("x")`.
+    ///
+    /// **Why is this bad?** Performing these methods using a `char` is faster than
+    /// using a `str`.
+    ///
+    /// **Known problems:** Does not catch multi-byte unicode characters.
+    ///
+    /// **Example:**
+    /// ```rust,ignore
+    /// // Bad
+    /// _.split("x");
+    ///
+    /// // Good
+    /// _.split('x');
+    pub SINGLE_CHAR_PATTERN,
+    perf,
+    "using a single-character str where a char could be used, e.g., `_.split(\"x\")`"
+}
 
 /// lint for length-1 `str`s for methods in `PATTERN_METHODS`
 pub(super) fn check(cx: &LateContext<'_>, _expr: &hir::Expr<'_>, method_name: Symbol, args: &[hir::Expr<'_>]) {
-    for &(method, pos) in &crate::methods::PATTERN_METHODS {
+    for &(method, pos) in &super::utils::PATTERN_METHODS {
         if_chain! {
             if let ty::Ref(_, ty, _) = cx.typeck_results().expr_ty_adjusted(&args[0]).kind();
             if *ty.kind() == ty::Str;

@@ -1,11 +1,36 @@
 use super::utils::get_type_snippet;
-use super::TRANSMUTE_PTR_TO_REF;
 use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::sugg;
 use rustc_errors::Applicability;
 use rustc_hir::{Expr, Mutability, QPath};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for transmutes from a pointer to a reference.
+    ///
+    /// **Why is this bad?** This can always be rewritten with `&` and `*`.
+    ///
+    /// **Known problems:**
+    /// - `mem::transmute` in statics and constants is stable from Rust 1.46.0,
+    /// while dereferencing raw pointer is not stable yet.
+    /// If you need to do this in those places,
+    /// you would have to use `transmute` instead.
+    ///
+    /// **Example:**
+    /// ```rust,ignore
+    /// unsafe {
+    ///     let _: &T = std::mem::transmute(p); // where p: *const T
+    /// }
+    ///
+    /// // can be written:
+    /// let _: &T = &*p;
+    /// ```
+    pub TRANSMUTE_PTR_TO_REF,
+    complexity,
+    "transmutes from a pointer to a reference type"
+}
 
 /// Checks for `transmute_ptr_to_ref` lint.
 /// Returns `true` if it's triggered, otherwise returns `false`.

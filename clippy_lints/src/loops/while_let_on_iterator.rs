@@ -1,5 +1,4 @@
 use super::utils::{LoopNestVisitor, Nesting};
-use super::WHILE_LET_ON_ITERATOR;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::source::snippet_with_applicability;
 use clippy_utils::ty::implements_trait;
@@ -13,7 +12,27 @@ use rustc_hir::intravisit::{walk_block, walk_expr, NestedVisitorMap, Visitor};
 use rustc_hir::{Expr, ExprKind, HirId, MatchSource, Node, PatKind};
 use rustc_lint::LateContext;
 use rustc_middle::hir::map::Map;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for `while let` expressions on iterators.
+    ///
+    /// **Why is this bad?** Readability. A simple `for` loop is shorter and conveys
+    /// the intent better.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```ignore
+    /// while let Some(val) = iter() {
+    ///     ..
+    /// }
+    /// ```
+    pub WHILE_LET_ON_ITERATOR,
+    style,
+    "using a `while let` loop instead of a for loop on an iterator"
+}
 
 pub(super) fn check(cx: &LateContext<'tcx>, expr: &'tcx Expr<'_>) {
     if let ExprKind::Match(match_expr, arms, MatchSource::WhileLetDesugar) = expr.kind {

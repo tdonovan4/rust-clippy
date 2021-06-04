@@ -5,8 +5,28 @@ use if_chain::if_chain;
 use rustc_hir::{Expr, ExprKind};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 
-use super::CAST_SIGN_LOSS;
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts from a signed to an unsigned numerical
+    /// type. In this case, negative values wrap around to large positive values,
+    /// which can be quite surprising in practice. However, as the cast works as
+    /// defined, this lint is `Allow` by default.
+    ///
+    /// **Why is this bad?** Possibly surprising results. You can activate this lint
+    /// as a one-time check to see where numerical wrapping can arise.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let y: i8 = -1;
+    /// y as u128; // will return 18446744073709551615
+    /// ```
+    pub CAST_SIGN_LOSS,
+    pedantic,
+    "casts from signed types to unsigned types, e.g., `x as u32` where `x: i32`"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>, cast_op: &Expr<'_>, cast_from: Ty<'_>, cast_to: Ty<'_>) {
     if should_lint(cx, cast_op, cast_from, cast_to) {

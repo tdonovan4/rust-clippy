@@ -7,9 +7,30 @@ use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_hir::PatKind;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::{source_map::Span, sym};
 
-use super::UNNECESSARY_FOLD;
+declare_clippy_lint! {
+    /// **What it does:** Checks for using `fold` when a more succinct alternative exists.
+    /// Specifically, this checks for `fold`s which could be replaced by `any`, `all`,
+    /// `sum` or `product`.
+    ///
+    /// **Why is this bad?** Readability.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let _ = (0..3).fold(false, |acc, x| acc || x > 2);
+    /// ```
+    /// This could be written as:
+    /// ```rust
+    /// let _ = (0..3).any(|x| x > 2);
+    /// ```
+    pub UNNECESSARY_FOLD,
+    style,
+    "using `fold` when a more succinct alternative exists"
+}
 
 pub(super) fn check(
     cx: &LateContext<'_>,

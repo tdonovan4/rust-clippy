@@ -4,9 +4,29 @@ use rustc_hir::intravisit::{walk_ty, NestedVisitorMap, Visitor};
 use rustc_hir::{GenericParamKind, TyKind};
 use rustc_lint::LateContext;
 use rustc_middle::hir::map::Map;
+use rustc_session::declare_tool_lint;
 use rustc_target::spec::abi::Abi;
 
-use super::TYPE_COMPLEXITY;
+declare_clippy_lint! {
+    /// **What it does:** Checks for types used in structs, parameters and `let`
+    /// declarations above a certain complexity threshold.
+    ///
+    /// **Why is this bad?** Too complex types make the code less readable. Consider
+    /// using a `type` definition to simplify them.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # use std::rc::Rc;
+    /// struct Foo {
+    ///     inner: Rc<Vec<Vec<Box<(u32, u32, u32, u32)>>>>,
+    /// }
+    /// ```
+    pub TYPE_COMPLEXITY,
+    complexity,
+    "usage of very complex types that might be better factored into `type` definitions"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, ty: &hir::Ty<'_>, type_complexity_threshold: u64) -> bool {
     let score = {

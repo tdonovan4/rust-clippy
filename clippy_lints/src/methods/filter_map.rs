@@ -9,13 +9,113 @@ use rustc_hir::def::Res;
 use rustc_hir::{Expr, ExprKind, PatKind, QPath, UnOp};
 use rustc_lint::LateContext;
 use rustc_middle::ty::TyS;
+use rustc_session::declare_tool_lint;
 use rustc_span::source_map::Span;
 use rustc_span::symbol::{sym, Symbol};
 use std::borrow::Cow;
 
-use super::MANUAL_FILTER_MAP;
-use super::MANUAL_FIND_MAP;
-use super::OPTION_FILTER_MAP;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `_.filter(_).map(_)` that can be written more simply
+    /// as `filter_map(_)`.
+    ///
+    /// **Why is this bad?** Redundant code in the `filter` and `map` operations is poor style and
+    /// less performant.
+    ///
+    /// **Known problems:** None.
+    ///
+     /// **Example:**
+    /// Bad:
+    /// ```rust
+    /// (0_i32..10)
+    ///     .filter(|n| n.checked_add(1).is_some())
+    ///     .map(|n| n.checked_add(1).unwrap());
+    /// ```
+    ///
+    /// Good:
+    /// ```rust
+    /// (0_i32..10).filter_map(|n| n.checked_add(1));
+    /// ```
+    pub MANUAL_FILTER_MAP,
+    complexity,
+    "using `_.filter(_).map(_)` in a way that can be written more simply as `filter_map(_)`"
+}
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `_.find(_).map(_)` that can be written more simply
+    /// as `find_map(_)`.
+    ///
+    /// **Why is this bad?** Redundant code in the `find` and `map` operations is poor style and
+    /// less performant.
+    ///
+    /// **Known problems:** None.
+    ///
+     /// **Example:**
+    /// Bad:
+    /// ```rust
+    /// (0_i32..10)
+    ///     .find(|n| n.checked_add(1).is_some())
+    ///     .map(|n| n.checked_add(1).unwrap());
+    /// ```
+    ///
+    /// Good:
+    /// ```rust
+    /// (0_i32..10).find_map(|n| n.checked_add(1));
+    /// ```
+    pub MANUAL_FIND_MAP,
+    complexity,
+    "using `_.find(_).map(_)` in a way that can be written more simply as `find_map(_)`"
+}
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `_.filter(_).map(_)`,
+    /// `_.filter(_).flat_map(_)`, `_.filter_map(_).flat_map(_)` and similar.
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely as
+    /// `_.filter_map(_)`.
+    ///
+    /// **Known problems:** Often requires a condition + Option/Iterator creation
+    /// inside the closure.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let vec = vec![1];
+    ///
+    /// // Bad
+    /// vec.iter().filter(|x| **x == 0).map(|x| *x * 2);
+    ///
+    /// // Good
+    /// vec.iter().filter_map(|x| if *x == 0 {
+    ///     Some(*x * 2)
+    /// } else {
+    ///     None
+    /// });
+    /// ```
+    pub FILTER_MAP,
+    pedantic,
+    "using combinations of `filter`, `map`, `filter_map` and `flat_map` which can usually be written as a single method call"
+}
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for indirect collection of populated `Option`
+    ///
+    /// **Why is this bad?** `Option` is like a collection of 0-1 things, so `flatten`
+    /// automatically does this without suspicious-looking `unwrap` calls.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// let _ = std::iter::empty::<Option<i32>>().filter(Option::is_some).map(Option::unwrap);
+    /// ```
+    /// Use instead:
+    /// ```rust
+    /// let _ = std::iter::empty::<Option<i32>>().flatten();
+    /// ```
+    pub OPTION_FILTER_MAP,
+    complexity,
+    "filtering `Option` for `Some` then force-unwrapping, which can be one type-safe operation"
+}
 
 fn is_method<'tcx>(cx: &LateContext<'tcx>, expr: &hir::Expr<'_>, method_name: Symbol) -> bool {
     match &expr.kind {

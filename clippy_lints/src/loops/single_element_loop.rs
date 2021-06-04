@@ -1,4 +1,4 @@
-use super::{get_span_of_entire_for_loop, SINGLE_ELEMENT_LOOP};
+use super::get_span_of_entire_for_loop;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::single_segment_path;
 use clippy_utils::source::{indent_of, snippet};
@@ -6,6 +6,32 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::{BorrowKind, Expr, ExprKind, Pat, PatKind};
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks whether a for loop has a single element.
+    ///
+    /// **Why is this bad?** There is no reason to have a loop of a
+    /// single element.
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let item1 = 2;
+    /// for item in &[item1] {
+    ///     println!("{}", item);
+    /// }
+    /// ```
+    /// could be written as
+    /// ```rust
+    /// let item1 = 2;
+    /// let item = &item1;
+    /// println!("{}", item);
+    /// ```
+    pub SINGLE_ELEMENT_LOOP,
+    complexity,
+    "there is no reason to have a single element loop"
+}
 
 pub(super) fn check<'tcx>(
     cx: &LateContext<'tcx>,

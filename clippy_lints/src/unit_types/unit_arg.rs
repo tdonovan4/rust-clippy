@@ -4,8 +4,29 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::{self as hir, Block, Expr, ExprKind, MatchSource, Node, StmtKind};
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 
-use super::{utils, UNIT_ARG};
+use super::utils;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for passing a unit value as an argument to a function without using a
+    /// unit literal (`()`).
+    ///
+    /// **Why is this bad?** This is likely the result of an accidental semicolon.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust,ignore
+    /// foo({
+    ///     let a = bar();
+    ///     baz(a);
+    /// })
+    /// ```
+    pub UNIT_ARG,
+    complexity,
+    "passing unit to a function"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>) {
     if expr.span.from_expansion() {

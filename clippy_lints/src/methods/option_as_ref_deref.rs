@@ -8,9 +8,33 @@ use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty;
 use rustc_semver::RustcVersion;
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
 
-use super::OPTION_AS_REF_DEREF;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `_.as_ref().map(Deref::deref)` or it's aliases (such as String::as_str).
+    ///
+    /// **Why is this bad?** Readability, this can be written more concisely as
+    /// `_.as_deref()`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let opt = Some("".to_string());
+    /// opt.as_ref().map(String::as_str)
+    /// # ;
+    /// ```
+    /// Can be written as
+    /// ```rust
+    /// # let opt = Some("".to_string());
+    /// opt.as_deref()
+    /// # ;
+    /// ```
+    pub OPTION_AS_REF_DEREF,
+    complexity,
+    "using `as_ref().map(Deref::deref)`, which is more succinctly expressed as `as_deref()`"
+}
 
 const OPTION_AS_REF_DEREF_MSRV: RustcVersion = RustcVersion::new(1, 40, 0);
 

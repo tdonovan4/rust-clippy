@@ -1,10 +1,53 @@
-use super::FOR_LOOPS_OVER_FALLIBLES;
 use clippy_utils::diagnostics::span_lint_and_help;
 use clippy_utils::source::snippet;
 use clippy_utils::ty::is_type_diagnostic_item;
 use rustc_hir::{Expr, Pat};
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for `for` loops over `Option` or `Result` values.
+    ///
+    /// **Why is this bad?** Readability. This is more clearly expressed as an `if
+    /// let`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let opt = Some(1);
+    ///
+    /// // Bad
+    /// for x in opt {
+    ///     // ..
+    /// }
+    ///
+    /// // Good
+    /// if let Some(x) = opt {
+    ///     // ..
+    /// }
+    /// ```
+    ///
+    /// // or
+    ///
+    /// ```rust
+    /// # let res: Result<i32, std::io::Error> = Ok(1);
+    ///
+    /// // Bad
+    /// for x in &res {
+    ///     // ..
+    /// }
+    ///
+    /// // Good
+    /// if let Ok(x) = res {
+    ///     // ..
+    /// }
+    /// ```
+    pub FOR_LOOPS_OVER_FALLIBLES,
+    correctness,
+    "for-looping over an `Option` or a `Result`, which is more clearly expressed as an `if let`"
+}
 
 /// Checks for `for` loops over `Option`s and `Result`s.
 pub(super) fn check(cx: &LateContext<'_>, pat: &Pat<'_>, arg: &Expr<'_>) {

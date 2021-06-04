@@ -4,8 +4,36 @@ use rustc_errors::Applicability;
 use rustc_hir::Expr;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty, UintTy};
+use rustc_session::declare_tool_lint;
 
-use super::{utils, FN_TO_NUMERIC_CAST};
+use super::utils;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for casts of function pointers to something other than usize
+    ///
+    /// **Why is this bad?**
+    /// Casting a function pointer to anything other than usize/isize is not portable across
+    /// architectures, because you end up losing bits if the target type is too small or end up with a
+    /// bunch of extra bits that waste space and add more instructions to the final binary than
+    /// strictly necessary for the problem
+    ///
+    /// Casting to isize also doesn't make sense since there are no signed addresses.
+    ///
+    /// **Example**
+    ///
+    /// ```rust
+    /// // Bad
+    /// fn fun() -> i32 { 1 }
+    /// let a = fun as i64;
+    ///
+    /// // Good
+    /// fn fun2() -> i32 { 1 }
+    /// let a = fun2 as usize;
+    /// ```
+    pub FN_TO_NUMERIC_CAST,
+    style,
+    "casting a function pointer to a numeric type other than usize"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &Expr<'_>, cast_expr: &Expr<'_>, cast_from: Ty<'_>, cast_to: Ty<'_>) {
     // We only want to check casts to `ty::Uint` or `ty::Int`

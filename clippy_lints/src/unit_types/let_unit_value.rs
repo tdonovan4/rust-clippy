@@ -5,8 +5,26 @@ use rustc_errors::Applicability;
 use rustc_hir::{Stmt, StmtKind};
 use rustc_lint::{LateContext, LintContext};
 use rustc_middle::lint::in_external_macro;
+use rustc_session::declare_tool_lint;
 
-use super::LET_UNIT_VALUE;
+declare_clippy_lint! {
+    /// **What it does:** Checks for binding a unit value.
+    ///
+    /// **Why is this bad?** A unit value cannot usefully be used anywhere. So
+    /// binding one is kind of pointless.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let x = {
+    ///     1;
+    /// };
+    /// ```
+    pub LET_UNIT_VALUE,
+    pedantic,
+    "creating a `let` binding to a value of unit type, which usually can't be used afterwards"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, stmt: &Stmt<'_>) {
     if let StmtKind::Local(local) = stmt.kind {

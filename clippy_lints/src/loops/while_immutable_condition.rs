@@ -1,4 +1,3 @@
-use super::WHILE_IMMUTABLE_CONDITION;
 use crate::consts::constant;
 use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::usage::mutated_variables;
@@ -10,6 +9,30 @@ use rustc_hir::HirIdSet;
 use rustc_hir::{Expr, ExprKind, QPath};
 use rustc_lint::LateContext;
 use rustc_middle::hir::map::Map;
+use rustc_session::declare_tool_lint;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks whether variables used within while loop condition
+    /// can be (and are) mutated in the body.
+    ///
+    /// **Why is this bad?** If the condition is unchanged, entering the body of the loop
+    /// will lead to an infinite loop.
+    ///
+    /// **Known problems:** If the `while`-loop is in a closure, the check for mutation of the
+    /// condition variables in the body can cause false negatives. For example when only `Upvar` `a` is
+    /// in the condition and only `Upvar` `b` gets mutated in the body, the lint will not trigger.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// let i = 0;
+    /// while i > 10 {
+    ///     println!("let me loop forever!");
+    /// }
+    /// ```
+    pub WHILE_IMMUTABLE_CONDITION,
+    correctness,
+    "variables used within while expression are not mutated in the body"
+}
 
 pub(super) fn check<'tcx>(cx: &LateContext<'tcx>, cond: &'tcx Expr<'_>, expr: &'tcx Expr<'_>) {
     if constant(cx, cx.typeck_results(), cond).is_some() {

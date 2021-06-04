@@ -4,9 +4,27 @@ use clippy_utils::{expr_or_init, is_trait_method};
 use if_chain::if_chain;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
 
-use super::SUSPICIOUS_MAP;
+declare_clippy_lint! {
+    /// **What it does:** Checks for calls to `map` followed by a `count`.
+    ///
+    /// **Why is this bad?** It looks suspicious. Maybe `map` was confused with `filter`.
+    /// If the `map` call is intentional, this should be rewritten. Or, if you intend to
+    /// drive the iterator to completion, you can just use `for_each` instead.
+    ///
+    /// **Known problems:** None
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// let _ = (0..3).map(|x| x + 2).count();
+    /// ```
+    pub SUSPICIOUS_MAP,
+    complexity,
+    "suspicious usage of map"
+}
 
 pub fn check<'tcx>(cx: &LateContext<'tcx>, expr: &hir::Expr<'_>, count_recv: &hir::Expr<'_>, map_arg: &hir::Expr<'_>) {
     if_chain! {

@@ -6,9 +6,33 @@ use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::{sym, Symbol};
 
-use super::CLONE_ON_REF_PTR;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `.clone()` on a ref-counted pointer,
+    /// (`Rc`, `Arc`, `rc::Weak`, or `sync::Weak`), and suggests calling Clone via unified
+    /// function syntax instead (e.g., `Rc::clone(foo)`).
+    ///
+    /// **Why is this bad?** Calling '.clone()' on an Rc, Arc, or Weak
+    /// can obscure the fact that only the pointer is being cloned, not the underlying
+    /// data.
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # use std::rc::Rc;
+    /// let x = Rc::new(1);
+    ///
+    /// // Bad
+    /// x.clone();
+    ///
+    /// // Good
+    /// Rc::clone(&x);
+    /// ```
+    pub CLONE_ON_REF_PTR,
+    restriction,
+    "using 'clone' on a ref-counted pointer"
+}
 
 pub(super) fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, method_name: Symbol, args: &[hir::Expr<'_>]) {
     if !(args.len() == 1 && method_name == sym::clone) {

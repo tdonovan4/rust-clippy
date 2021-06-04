@@ -2,9 +2,38 @@ use clippy_utils::diagnostics::span_lint_and_help;
 use clippy_utils::is_trait_method;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
+use rustc_session::declare_tool_lint;
 use rustc_span::{source_map::Span, sym};
 
-use super::INSPECT_FOR_EACH;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `inspect().for_each()`.
+    ///
+    /// **Why is this bad?** It is the same as performing the computation
+    /// inside `inspect` at the beginning of the closure in `for_each`.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// [1,2,3,4,5].iter()
+    /// .inspect(|&x| println!("inspect the number: {}", x))
+    /// .for_each(|&x| {
+    ///     assert!(x >= 0);
+    /// });
+    /// ```
+    /// Can be written as
+    /// ```rust
+    /// [1,2,3,4,5].iter()
+    /// .for_each(|&x| {
+    ///     println!("inspect the number: {}", x);
+    ///     assert!(x >= 0);
+    /// });
+    /// ```
+    pub INSPECT_FOR_EACH,
+    complexity,
+    "using `.inspect().for_each()`, which can be replaced with `.for_each()`"
+}
 
 /// lint use of `inspect().for_each()` for `Iterators`
 pub(super) fn check<'tcx>(cx: &LateContext<'tcx>, expr: &'tcx hir::Expr<'_>, inspect_span: Span) {

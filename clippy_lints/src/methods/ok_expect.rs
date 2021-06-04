@@ -4,9 +4,31 @@ use if_chain::if_chain;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
 
-use super::OK_EXPECT;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `ok().expect(..)`.
+    ///
+    /// **Why is this bad?** Because you usually call `expect()` on the `Result`
+    /// directly to get a better error message.
+    ///
+    /// **Known problems:** The error type needs to implement `Debug`
+    ///
+    /// **Example:**
+    /// ```rust
+    /// # let x = Ok::<_, ()>(());
+    ///
+    /// // Bad
+    /// x.ok().expect("why did I do this again?");
+    ///
+    /// // Good
+    /// x.expect("why did I do this again?");
+    /// ```
+    pub OK_EXPECT,
+    style,
+    "using `ok().expect()`, which gives worse error messages than calling `expect` directly on the Result"
+}
 
 /// lint use of `ok().expect()` for `Result`s
 pub(super) fn check(cx: &LateContext<'_>, expr: &hir::Expr<'_>, recv: &hir::Expr<'_>) {

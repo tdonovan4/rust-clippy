@@ -1,4 +1,3 @@
-use super::FOR_KV_MAP;
 use clippy_utils::diagnostics::{multispan_sugg, span_lint_and_then};
 use clippy_utils::source::snippet;
 use clippy_utils::ty::{is_type_diagnostic_item, match_type};
@@ -7,7 +6,36 @@ use clippy_utils::{paths, sugg};
 use rustc_hir::{BorrowKind, Expr, ExprKind, Mutability, Pat, PatKind};
 use rustc_lint::LateContext;
 use rustc_middle::ty;
+use rustc_session::declare_tool_lint;
 use rustc_span::sym;
+
+declare_clippy_lint! {
+    /// **What it does:** Checks for iterating a map (`HashMap` or `BTreeMap`) and
+    /// ignoring either the keys or values.
+    ///
+    /// **Why is this bad?** Readability. There are `keys` and `values` methods that
+    /// can be used to express that don't need the values or keys.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    /// ```ignore
+    /// for (k, _) in &map {
+    ///     ..
+    /// }
+    /// ```
+    ///
+    /// could be replaced by
+    ///
+    /// ```ignore
+    /// for k in map.keys() {
+    ///     ..
+    /// }
+    /// ```
+    pub FOR_KV_MAP,
+    style,
+    "looping on a map using `iter` when `keys` or `values` would do"
+}
 
 /// Checks for the `FOR_KV_MAP` lint.
 pub(super) fn check<'tcx>(

@@ -7,9 +7,45 @@ use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
 use rustc_semver::RustcVersion;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::sym;
 
-use super::MAP_UNWRAP_OR;
+declare_clippy_lint! {
+    /// **What it does:** Checks for usage of `option.map(_).unwrap_or(_)` or `option.map(_).unwrap_or_else(_)` or
+    /// `result.map(_).unwrap_or_else(_)`.
+    ///
+    /// **Why is this bad?** Readability, these can be written more concisely (resp.) as
+    /// `option.map_or(_, _)`, `option.map_or_else(_, _)` and `result.map_or_else(_, _)`.
+    ///
+    /// **Known problems:** The order of the arguments is not in execution order
+    ///
+    /// **Examples:**
+    /// ```rust
+    /// # let x = Some(1);
+    ///
+    /// // Bad
+    /// x.map(|a| a + 1).unwrap_or(0);
+    ///
+    /// // Good
+    /// x.map_or(0, |a| a + 1);
+    /// ```
+    ///
+    /// // or
+    ///
+    /// ```rust
+    /// # let x: Result<usize, ()> = Ok(1);
+    /// # fn some_function(foo: ()) -> usize { 1 }
+    ///
+    /// // Bad
+    /// x.map(|a| a + 1).unwrap_or_else(some_function);
+    ///
+    /// // Good
+    /// x.map_or_else(some_function, |a| a + 1);
+    /// ```
+    pub MAP_UNWRAP_OR,
+    pedantic,
+    "using `.map(f).unwrap_or(a)` or `.map(f).unwrap_or_else(func)`, which are more succinctly expressed as `map_or(a, f)` or `map_or_else(a, f)`"
+}
 
 const MAP_UNWRAP_OR_MSRV: RustcVersion = RustcVersion::new(1, 41, 0);
 
